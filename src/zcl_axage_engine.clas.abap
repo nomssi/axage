@@ -55,6 +55,18 @@ CLASS zcl_axage_engine DEFINITION
         object2 TYPE clike
         player TYPE REF TO zcl_axage_actor
         result TYPE REF TO zcl_axage_result.
+    METHODS do_splash
+      IMPORTING
+        object1 TYPE clike
+        object2 TYPE clike
+        player TYPE REF TO zcl_axage_actor
+        result TYPE REF TO zcl_axage_result.
+    METHODS do_dunk
+      IMPORTING
+        object1 TYPE clike
+        object2 TYPE clike
+        player TYPE REF TO zcl_axage_actor
+        result TYPE REF TO zcl_axage_result.
 
     METHODS do_take
       IMPORTING
@@ -119,13 +131,13 @@ CLASS zcl_axage_engine IMPLEMENTATION.
 
   METHOD do_take.
     IF from->exists( object ).
-      result->add( |You take the { object }| ).
+      result->add( |You pickup the { object }| ).
       to->add( from->get( object ) ).
       from->delete( object ).
     ELSEIF from->get_list( ) IS INITIAL.
-      result->add( 'There is nothing you can take' ).
+      result->add( 'You cannot pickup any object' ).
     ELSE.
-      result->add( |There is no { object } you can take| ).
+      result->add( |There is no { object } you can pickup| ).
     ENDIF.
   ENDMETHOD.
 
@@ -232,30 +244,44 @@ CLASS zcl_axage_engine IMPLEMENTATION.
 
   ENDMETHOD.
 
+  METHOD do_splash.
+    " to be implemented
+    result->add( |You are too early, I still have to learn how to Splash yet, Sorry| ).
+    RETURN.
+  ENDMETHOD.
+
+  METHOD do_dunk.
+    " to be implemented
+    result->add( |You are too early, I still have to learn how to Dunk yet, Sorry| ).
+    RETURN.
+  ENDMETHOD.
+
   METHOD add_help.
     result->add( `` ).
     result->add( `Navigation Commands:` ).
     result->add( |MAP               Show map/ floor plan/ world| ).
-    result->add( |N or NORTH        Go to the room on the north side| ).
-    result->add( |E or EAST         Go to the room on the east side| ).
-    result->add( |S or SOUTH        Go to the room on the south side| ).
-    result->add( |W or WEST         Go to the room on the west side| ).
+    result->add( |N or NORTH        Walk to the room on the north side| ).
+    result->add( |E or EAST         Walk to the room on the east side| ).
+    result->add( |S or SOUTH        Walk to the room on the south side| ).
+    result->add( |W or WEST         Walk to the room on the west side| ).
     result->add( |U or UP           Go to the room upstairs| ).
     result->add( |D or DOWN         Go to the room downstairs| ).
 
     result->add( `` ).
     result->add( `Interaction with Objects:` ).
-    result->add( |INV or INVENTARY  Show everything you carry| ).
-    result->add( |LOOK              Look what''s in the room| ).
+    result->add( |INV or INVENTORY  View everything you ae carrying| ).
+    result->add( |LOOK              Describe your environment| ).
     result->add( |LOOK <object>     Have a closer look at the object in the room or in your inventory| ).
-    result->add( |TAKE <object>     Take object in the room| ).
+    result->add( |PICKUP <object>   Pickup an object in the current place| ).
     result->add( |DROP <object>     Drop an object that you carry| ).
     result->add( |OPEN <object>     Open something that is in the room| ).
     result->add( `` ).
     result->add( `Other Commands:` ).
     result->add( |ASK <person>            Ask a person to tell you something| ).
-    result->add( |WELD <subject> <object> Weld one object to another| ).
-
+    result->add( |WELD <subject> <object>   Weld subject to the object if allowed| ).
+    result->add( |DUNK <subject> <object>   Dunk subject into object if allowed| ).
+    result->add( |SPLASH <subject> <object> Splash  subject into object| ).
+    result->add( `` ).
   ENDMETHOD.
 
   METHOD interprete.
@@ -289,7 +315,7 @@ CLASS zcl_axage_engine IMPLEMENTATION.
           result = result
           cmd2   = cmd2 ).
 
-      WHEN 'TAKE'.
+      WHEN 'TAKE' OR 'PICKUP'.
         do_take( object = cmd2
                  from = player->location->things
                  to = player->things
@@ -323,6 +349,24 @@ CLASS zcl_axage_engine IMPLEMENTATION.
 
       WHEN 'WELD'.
         do_weld( object1 = cmd2
+                 object2 = cmd3
+                 player = player
+                 result = result ).
+        IF auto_look EQ abap_true.
+          cmd_look( result ).
+        ENDIF.
+
+      WHEN 'SPLASH'.
+        do_splash( object1 = cmd2
+                   object2 = cmd3
+                   player = player
+                   result = result ).
+        IF auto_look EQ abap_true.
+          cmd_look( result ).
+        ENDIF.
+
+      WHEN 'DUNK'.
+        do_dunk( object1 = cmd2
                  object2 = cmd3
                  player = player
                  result = result ).
@@ -364,9 +408,8 @@ CLASS zcl_axage_engine IMPLEMENTATION.
   METHOD cmd_look.
 
     IF cmd2 IS INITIAL.
-      DATA actor TYPE REF TO zcl_axage_actor.
       LOOP AT actors->get_list( ) INTO DATA(thing).
-        actor ?= thing.
+        DATA(actor) = CAST zcl_axage_actor( thing ).
         IF actor->get_location( ) = player->location.
           result->add( |There is { actor->name }, { actor->description }| ).
         ENDIF.
