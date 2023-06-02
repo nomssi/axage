@@ -9,6 +9,7 @@ CLASS zcl_axage_engine DEFINITION
     METHODS interprete
       IMPORTING
         command       TYPE clike
+        auto_look     TYPE boolean DEFAULT abap_true
       RETURNING
         VALUE(result) TYPE REF TO zcl_axage_result.
     METHODS is_completed
@@ -30,6 +31,12 @@ CLASS zcl_axage_engine DEFINITION
       IMPORTING
         result TYPE REF TO zcl_axage_result
         cmd2   TYPE string OPTIONAL.
+    METHODS goto
+      IMPORTING
+        location TYPE REF TO zcl_axage_room
+        result TYPE REF TO zcl_axage_result
+        look TYPE boolean.
+
 ENDCLASS.
 
 CLASS zcl_axage_engine IMPLEMENTATION.
@@ -41,8 +48,22 @@ CLASS zcl_axage_engine IMPLEMENTATION.
 
   ENDMETHOD.
 
+  METHOD goto.
+    IF location IS BOUND.
+      IF location->name = zcl_axage_room=>no_exit->name.
+        result->add( 'you cannot go that way.' ).
+      ELSE.
+        player->set_location( location ).
+      ENDIF.
+      IF look EQ abap_true.
+        cmd_look( result ).
+      ENDIF.
+    ENDIF.
+  ENDMETHOD.
+
   METHOD interprete.
     DATA cmd TYPE string. "c LENGTH 100.
+    DATA location TYPE REF TO zcl_axage_room.
 
     result = NEW #(  ).
 
@@ -50,41 +71,29 @@ CLASS zcl_axage_engine IMPLEMENTATION.
 
     SPLIT cmd AT space INTO DATA(cmd1) DATA(cmd2).
 
+    CLEAR location.
+
     CASE cmd1.
       WHEN 'MAP'.
         result->addTab( map->show( ) ).
 
       WHEN 'N' OR 'NORTH'.
-        IF player->location->north->name = zcl_axage_room=>no_exit->name.
-          result->add( 'you cannot go there.' ).
-        ELSE.
-          player->set_location( player->location->north ).
-        ENDIF.
-        cmd_look( result ).
+        location = player->location->north.
 
       WHEN 'S' OR 'SOUTH'.
-        IF player->location->south->name = zcl_axage_room=>no_exit->name.
-          result->add( 'you cannot go there.' ).
-        ELSE.
-          player->set_location( player->location->south ).
-        ENDIF.
-        cmd_look( result ).
+        location = player->location->south.
 
       WHEN 'E' OR 'EAST'.
-        IF player->location->east->name = zcl_axage_room=>no_exit->name.
-          result->add( 'you cannot go there.' ).
-        ELSE.
-          player->set_location( player->location->east ).
-        ENDIF.
-        cmd_look( result ).
+        location = player->location->east.
 
       WHEN 'W' OR 'WEST'.
-        IF player->location->west->name = zcl_axage_room=>no_exit->name.
-          result->add( 'you cannot go there.' ).
-        ELSE.
-          player->set_location( player->location->west ).
-        ENDIF.
-        cmd_look( result ).
+        location = player->location->west.
+
+      WHEN 'U' OR 'UP'.
+        location = player->location->up.
+
+      WHEN 'D' OR 'DOWN'.
+        location = player->location->down.
 
       WHEN 'HELP'.
 
@@ -92,6 +101,8 @@ CLASS zcl_axage_engine IMPLEMENTATION.
         result->add( |E or EAST         Go to the room on the east side| ).
         result->add( |S or SOUTH        Go to the room on the south side| ).
         result->add( |W or WEST         Go to the room on the west side| ).
+        result->add( |U or UP           Go to the room upstairs| ).
+        result->add( |D or DOWN         Go to the room downstairs| ).
         result->add( |MAP               Show map/ floor plan/ world| ).
         result->add( || ).
         result->add( |INV or INVENTARY  Show everything you carry| ).
@@ -118,7 +129,7 @@ CLASS zcl_axage_engine IMPLEMENTATION.
             player->things->add( player->location->things->get( cmd2 ) ).
             player->location->things->delete( cmd2 ).
           ELSE.
-            result->add( |You cannot take the { cmd2 }| ).
+            result->add( |You cannot take that { cmd2 }| ).
           ENDIF.
         ENDIF.
 
@@ -131,13 +142,13 @@ CLASS zcl_axage_engine IMPLEMENTATION.
             player->location->things->add( player->things->get( cmd2 ) ).
             player->things->delete( cmd2 ).
           ELSE.
-            result->add( |You cannot drop the { cmd2 }| ).
+            result->add( |You cannot drop that { cmd2 }| ).
           ENDIF.
         ENDIF.
 
       WHEN 'INV' OR 'INVENTORY'.
         IF player->things->get_list( ) IS INITIAL.
-          result->add( 'You don''t carry anything' ).
+          result->add( 'You aren''t carrying anything' ).
         ELSE.
           result->add( 'You carry' ).
           result->addtab( player->things->show( ) ).
@@ -148,7 +159,7 @@ CLASS zcl_axage_engine IMPLEMENTATION.
           result->add( 'Open what?' ).
         ELSEIF player->things->get_list( ) IS INITIAL
         AND    player->location->things->get_list( ) IS INITIAL.
-          result->add( 'There is nothing you can open...' ).
+          result->add( 'There is nothing to open...' ).
         ELSE.
           IF player->things->exists( cmd2 ).
             DATA(thing) = player->things->get( cmd2 ).
@@ -205,6 +216,10 @@ CLASS zcl_axage_engine IMPLEMENTATION.
         result->add( 'You cannot do that' ).
     ENDCASE.
 
+    goto( location = location
+          result = result
+          look = auto_look ).
+
   ENDMETHOD.
 
   METHOD is_completed.
@@ -220,7 +235,7 @@ CLASS zcl_axage_engine IMPLEMENTATION.
       IF inv IS INITIAL.
         result->add( |You are carrying:| ).
       ENDIF.
-      result->add( |{ thing_inv->name } - { thing_inv->description }| ).
+      result->add( |{ thing_inv->name } { thing_inv->description }| ).
     ENDLOOP.
 
     IF sy-subrc > 0.
@@ -265,6 +280,12 @@ CLASS zcl_axage_engine IMPLEMENTATION.
       IF player->location->south->name <> zcl_axage_room=>no_exit->name.
         result->add( 'There is a door on the south side' ).
       ENDIF.
+      IF player->location->up->name <> zcl_axage_room=>no_exit->name.
+        result->add( 'There is a ladder going upstairs' ).
+      ENDIF.
+      IF player->location->down->name <> zcl_axage_room=>no_exit->name.
+        result->add( 'There is a ladder going downstairs' ).
+      ENDIF.
 
     ELSE.
       IF player->location->things->exists( cmd2 ).
@@ -272,7 +293,7 @@ CLASS zcl_axage_engine IMPLEMENTATION.
       ELSEIF player->things->exists( cmd2 ).
         result->add( |It's { player->things->get( cmd2 )->description }| ).
       ELSE.
-        result->add( |You cannot look at the { cmd2 }| ).
+        result->add( |You cannot look at that { cmd2 }| ).
       ENDIF.
     ENDIF.
 

@@ -8,6 +8,8 @@ CLASS zcl_axage_room DEFINITION INHERITING FROM zcl_axage_thing
     DATA east TYPE REF TO zcl_axage_room.
     DATA south TYPE REF TO zcl_axage_room.
     DATA west TYPE REF TO zcl_axage_room.
+    DATA up TYPE REF TO zcl_axage_room.
+    DATA down TYPE REF TO zcl_axage_room.
     DATA things TYPE REF TO zcl_axage_thing_list.
     CLASS-DATA no_exit TYPE REF TO zcl_axage_room.
     CLASS-METHODS class_constructor.
@@ -17,6 +19,8 @@ CLASS zcl_axage_room DEFINITION INHERITING FROM zcl_axage_thing
         descr TYPE clike.
     METHODS set_exits
       IMPORTING
+        u TYPE REF TO zcl_axage_room OPTIONAL
+        d TYPE REF TO zcl_axage_room OPTIONAL
         n TYPE REF TO zcl_axage_room OPTIONAL
         e TYPE REF TO zcl_axage_room OPTIONAL
         s TYPE REF TO zcl_axage_room OPTIONAL
@@ -46,6 +50,8 @@ CLASS zcl_axage_room IMPLEMENTATION.
     east  = set_exit( e ).
     south = set_exit( s ).
     west  = set_exit( w ).
+    up    = set_exit( u ).
+    down  = set_exit( d ).
   ENDMETHOD.
   METHOD set_exit.
     IF room IS BOUND.

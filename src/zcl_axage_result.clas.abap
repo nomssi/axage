@@ -4,6 +4,8 @@ CLASS zcl_axage_result DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
+    METHODS reset.
+
     METHODS add
       IMPORTING
         text TYPE clike.
@@ -29,11 +31,15 @@ CLASS zcl_axage_result IMPLEMENTATION.
 
   METHOD get.
     LOOP AT text REFERENCE INTO DATA(line).
-      textstring = textstring && line->* && cl_abap_char_utilities=>cr_lf.
+      textstring &&= line->* && |\n|.
     ENDLOOP.
   ENDMETHOD.
 
   METHOD addTab.
     APPEND LINES OF textTab TO text.
+  ENDMETHOD.
+
+  METHOD reset.
+    CLEAR text.
   ENDMETHOD.
 ENDCLASS.
