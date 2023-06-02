@@ -24,7 +24,7 @@ CLASS result IMPLEMENTATION.
 
   METHOD get.
     LOOP AT text INTO DATA(line).
-      textstring = textstring && line && cl_abap_char_utilities=>cr_lf.
+      textstring = textstring && line && |\n|.
     ENDLOOP.
   ENDMETHOD.
 
