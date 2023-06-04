@@ -10,6 +10,10 @@ CLASS zcl_axage_result DEFINITION
       IMPORTING
         text TYPE clike.
 
+    METHODS insert
+      IMPORTING
+        text TYPE clike.
+
     METHODS addTab
       IMPORTING
         textTab TYPE string_table.
@@ -25,8 +29,13 @@ ENDCLASS.
 
 
 CLASS zcl_axage_result IMPLEMENTATION.
+
   METHOD add.
     APPEND text TO me->text.
+  ENDMETHOD.
+
+  METHOD insert.
+    INSERT text INTO me->text INDEX 1.
   ENDMETHOD.
 
   METHOD get.

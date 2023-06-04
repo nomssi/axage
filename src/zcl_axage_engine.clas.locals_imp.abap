@@ -16,6 +16,7 @@ CLASS lcl_action DEFINITION ABSTRACT.
                                   !result  TYPE REF TO zcl_axage_result.
 
   PROTECTED SECTION.
+    TYPES tt_thing_list TYPE STANDARD TABLE OF REF TO zcl_axage_thing_list.
     DATA objects TYPE string_table.
     DATA player TYPE REF TO zcl_axage_actor.
     DATA actors TYPE REF TO zcl_axage_thing_list.
@@ -26,11 +27,13 @@ CLASS lcl_action DEFINITION ABSTRACT.
     DATA available_things TYPE REF TO zcl_axage_thing_list.
 
     METHODS validate1 IMPORTING operation TYPE string
-                                from TYPE REF TO zcl_axage_thing_list
+                                it_from TYPE tt_thing_list
+                      EXPORTING eo_item TYPE REF TO zcl_axage_thing
                       RETURNING VALUE(valid) TYPE abap_bool.
-    METHODS validate IMPORTING param TYPE string
+    METHODS validate IMPORTING into_object TYPE string
                                operation TYPE string
-                               from TYPE REF TO zcl_axage_thing_list
+                               it_from TYPE tt_thing_list
+                     EXPORTING eo_item TYPE REF TO zcl_axage_thing
                      RETURNING VALUE(valid) TYPE abap_bool.
 
 ENDCLASS.
@@ -49,22 +52,40 @@ CLASS lcl_action IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD validate1.
-    valid = validate( param = param1
-                      operation = operation
-                      from = from ).
+    valid = validate( EXPORTING into_object = param1
+                                operation = operation
+                                it_from = it_from
+                      IMPORTING eo_item = eo_item ).
   ENDMETHOD.
 
   METHOD validate.
+    FIELD-SYMBOLS <flag> TYPE abap_bool.
+
     valid = abap_false.
+    CLEAR eo_item.
     IF param1 IS INITIAL.
-      result->add( |{ operation } what?| ).
-    ELSEIF from->exists( param1 ).
-      result->add( |You { operation } the { param }| ).
-      valid = abap_true.
-    ELSEIF from->get_list( ) IS INITIAL.
-      result->add( |You have nothing to { operation }...| ).
+      result->insert( |{ operation } what?| ).
     ELSE.
-      result->add( |There is no { param } you can { operation }| ).
+      LOOP AT it_from INTO DATA(from).
+        IF from->exists( into_object ).
+          eo_item = from->get( into_object ).         " variable is used dynamically
+          EXIT.
+        ENDIF.
+      ENDLOOP.
+      IF eo_item IS BOUND.
+
+        DATA(attribute) = |ITEM->CAN_BE_{ to_upper( operation ) }|.
+        ASSIGN (attribute) TO <flag>.
+        IF sy-subrc = 0 AND <flag> = abap_false.
+          result->add( |{ operation } is not allowed for a { into_object }| ).
+        ELSE.
+          valid = abap_true.
+        ENDIF.
+      ELSEIF from->get_list( ) IS INITIAL.
+        result->add( |You have nothing to { operation }...| ).
+      ELSE.
+        result->add( |There is no { into_object } you can { operation }| ).
+      ENDIF.
     ENDIF.
   ENDMETHOD.
 
@@ -78,11 +99,12 @@ ENDCLASS.
 CLASS lcl_drop IMPLEMENTATION.
 
   METHOD execute.
-    IF validate1( from = owned_things
+    IF validate1( it_from = VALUE #( ( owned_things ) )
                   operation = 'drop' ).
       DATA(item) = owned_things->get( param1 ).
       owned_things->delete( param1 ).
       available_things->add( item ).
+      result->add( |You dropped the { param1 }| ).
     ENDIF.
   ENDMETHOD.
 
@@ -95,12 +117,15 @@ ENDCLASS.
 
 CLASS lcl_pickup IMPLEMENTATION.
   METHOD execute.
-    IF validate1( from = available_things
-                  operation = 'pickup' ).
-      DATA(item) = available_things->get( param1 ).
-      owned_things->add( item ).
-      available_things->delete( param1 ).
-    ENDIF.
+    LOOP AT objects INTO param1.
+      IF validate1( it_from = VALUE #( ( available_things ) )
+                    operation = 'pickup' ).
+        DATA(item) = available_things->get( param1 ).
+        owned_things->add( item ).
+        available_things->delete( param1 ).
+        result->add( |You picked the { param1 } up| ).
+      ENDIF.
+    ENDLOOP.
   ENDMETHOD.
 
 ENDCLASS.
@@ -113,36 +138,34 @@ ENDCLASS.
 CLASS lcl_open IMPLEMENTATION.
 
   METHOD execute.
-    CHECK validate1( operation = 'open'
-                     from = owned_things ).
+    DATA item TYPE REF TO zcl_axage_thing.
 
-    DATA(box)  = param1.
+    IF NOT validate1( EXPORTING operation = 'open'
+                                it_from = VALUE #( ( owned_things )
+                                                   ( available_things )  )
+                      IMPORTING eo_item = item ).
+      RETURN.
+    ENDIF.
+
+    DATA(box) = param1.
 
     IF box IS INITIAL.
-    ELSEIF     owned_things->get_list( )  IS INITIAL
-           AND available_things->get_list( ) IS INITIAL.
-      result->add( 'There is nothing to open...' ).
     ELSE.
-      IF owned_things->exists( box ).
-        DATA(thing) = owned_things->get( box ).
-      ELSEIF available_things->exists( box ).
-        thing = available_things->get( box ).
-      ENDIF.
 
-      IF thing IS INSTANCE OF zif_axage_openable.
-        DATA(thing_to_open) = CAST zif_axage_openable( thing ).
+      IF item IS INSTANCE OF zif_axage_openable.
+        DATA(thing_to_open) = CAST zif_axage_openable( item ).
         result->add( thing_to_open->open( player->things )->get( ) ).
         IF thing_to_open->is_open( ).
           DATA finds TYPE string_table.
           LOOP AT thing_to_open->get_content( )->get_list( ) INTO DATA(content).
             APPEND |a { content->name }| TO finds.
           ENDLOOP.
-          result->add( |The { thing->name } contains:| ).
+          result->add( |The { item->name } contains:| ).
           result->addtab( finds ).
           player->things->add( content ).
         ENDIF.
-      ELSEIF thing IS BOUND.
-        result->add( |{ thing->name } cannot be opened!| ).
+      ELSEIF item IS BOUND.
+        result->add( |{ item->name } cannot be opened!| ).
       ELSE.
         result->add( |You cannot open that { box }| ).
       ENDIF.
@@ -175,7 +198,7 @@ CLASS lcl_ask IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD execute.
-    CHECK validate1( from = owned_things
+    CHECK validate1( it_from = VALUE #( ( owned_things ) )
                      operation = 'ask' ).
 
     DATA(name) = param1.
@@ -208,12 +231,15 @@ CLASS lcl_weld IMPLEMENTATION.
   METHOD execute.
    DATA(object2) = VALUE #( objects[ 2 ] OPTIONAL ).
     IF validate1( operation = 'weld'
-                  from = owned_things ).
-      IF validate( param = object2
-                   from = owned_things
-                   operation = 'weld to' ).
+                  it_from = VALUE #( ( owned_things ) ) ).
+      IF validate( into_object = object2
+                   it_from = VALUE #( ( owned_things ) )
+                   operation = 'weld into' ).
         DATA(available_things) = player->location->things.
-          IF player->location->things->exists( 'WELDING TORCH' ).
+
+          " can_weld_at_this_location ?
+          LOOP AT player->location->things->get_list( ) INTO DATA(thing) WHERE TABLE_LINE->can_weld = abap_true.
+
 
             result->add( |You have welded {  param1 } to {  object2 }| ).
             DATA(new_object_name) = |{ param1 }+{  object2 }|.
@@ -225,9 +251,10 @@ CLASS lcl_weld IMPLEMENTATION.
             owned_things->delete( param1 ).
             owned_things->delete( object2 ).
 
-          ELSE.
-            result->add( 'There is no Welding Torch here...' ).
-          ENDIF.
+            RETURN.
+          ENDLOOP..
+
+          result->add( 'There is no Welding Torch here...' ).
       ENDIF.
     ENDIF.
 
@@ -242,17 +269,21 @@ ENDCLASS.
 
 CLASS lcl_splash IMPLEMENTATION.
   METHOD execute.
+    DATA item TYPE REF TO zcl_axage_thing.
     DATA(object2) = VALUE #( objects[ 2 ] OPTIONAL ).
 
     IF validate1( operation = 'splash'
-                  from = owned_things ).
+                  it_from = VALUE #( ( owned_things ) ) ).
 
-      IF validate( param = object2
-                   from = available_things
-                   operation = 'splash on' ).
-            result->add( |You have splashed {  param1 } on {  object2 }| ).
-
+      IF validate( EXPORTING into_object = object2
+                             it_from = VALUE #( ( owned_things ) ( available_things ) )
+                             operation = 'splash_into'
+                   IMPORTING eo_item = item ).
+        result->add( |You have splashed {  param1 } on {  object2 }| ).
+      ELSEIF item IS BOUND.
+        result->add( |You cannot splash {  param1 } into {  object2 }| ).
       ENDIF.
+
     ENDIF.
 
   ENDMETHOD.
@@ -266,32 +297,33 @@ ENDCLASS.
 
 CLASS lcl_dunk IMPLEMENTATION.
   METHOD execute.
+    DATA item TYPE REF TO zcl_axage_thing.
     DATA(object2) = VALUE #( objects[ 2 ] OPTIONAL ).
 
     IF NOT validate1( operation = 'dunk'
-                      from = owned_things ).
+                      it_from = VALUE #( ( owned_things ) ) ).
       RETURN.
     ENDIF.
 
-    IF NOT validate( param = object2
-                     from = available_things
-                     operation = 'dunk in' ).
-      RETURN.
+    IF validate( EXPORTING into_object = object2
+                           it_from = VALUE #( ( owned_things ) ( available_things ) )
+                           operation = 'dunk_into'
+                 IMPORTING eo_item = item ).
     ENDIF.
 
-    IF player->location->things->exists( 'MOP' ).
+    IF item IS BOUND AND item->can_be_dunk_into = abap_true.
 
-      result->add( |You have dunk {  param1 } in {  object2 }| ).
-      DATA(new_object_name) = |WET { param1 }|.
-
-      " Add new object object1+object2
-      owned_things->add( available_things->get( new_object_name ) ).
+      result->add( |You have dunked the { param1 } into the {  object2 }| ).
+*      DATA(new_object_name) = |WET { param1 }|.
+*
+*      " Add new object object1+object2
+*      owned_things->add( available_things->get( new_object_name ) ).
 
       " Remove 1 objects
-      owned_things->delete( param1 ).
+*      owned_things->delete( param1 ).
 
     ELSE.
-      result->add( 'There is no water here...' ).
+      result->add( |You cannot dunk into { object2 }| ).
     ENDIF.
   ENDMETHOD.
 
