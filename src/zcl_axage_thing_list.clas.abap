@@ -57,7 +57,7 @@ CLASS zcl_axage_thing_list IMPLEMENTATION.
 
   METHOD show.
     LOOP AT things into DATA(currentThing).
-      APPEND |a { currentThing->name } { currentThing->description }| TO result.
+      APPEND |a { currentThing->name }| TO result.
     ENDLOOP.
   ENDMETHOD.
 

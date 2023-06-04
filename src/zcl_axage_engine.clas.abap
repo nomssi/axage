@@ -1,162 +1,164 @@
 CLASS zcl_axage_engine DEFINITION
   PUBLIC
   FINAL
-  CREATE PUBLIC .
+  CREATE PUBLIC.
 
   PUBLIC SECTION.
-  INTERFACES if_serializable_object.
+    INTERFACES if_serializable_object.
+
     METHODS constructor.
+
     METHODS interprete
-      IMPORTING
-        command       TYPE clike
-        auto_look     TYPE boolean DEFAULT abap_true
-      RETURNING
-        VALUE(result) TYPE REF TO zcl_axage_result.
+      IMPORTING !command      TYPE clike
+                auto_look     TYPE boolean DEFAULT abap_true
+      RETURNING VALUE(result) TYPE REF TO zcl_axage_result.
+
     METHODS is_completed
-      RETURNING
-        VALUE(result) TYPE abap_bool.
+      RETURNING VALUE(result) TYPE abap_bool.
+
     METHODS get_location
-      RETURNING
-        VALUE(result) TYPE string.
+      RETURNING VALUE(result) TYPE string.
+
     METHODS get_inventory
-      RETURNING
-        VALUE(result) TYPE REF TO zcl_axage_result.
-    DATA player TYPE REF TO zcl_axage_actor.
-    DATA map TYPE REF TO zcl_axage_map.
-    DATA actors TYPE REF TO zcl_axage_thing_list.
+      RETURNING VALUE(result) TYPE REF TO zcl_axage_result.
+
+    DATA player            TYPE REF TO zcl_axage_actor.
+    DATA map               TYPE REF TO zcl_axage_map.
+    DATA actors            TYPE REF TO zcl_axage_thing_list.
     DATA mission_completed TYPE abap_bool.
-  PROTECTED SECTION.
+
   PRIVATE SECTION.
+
     METHODS cmd_look
-      IMPORTING
-        result TYPE REF TO zcl_axage_result
-        cmd2   TYPE string OPTIONAL.
+      IMPORTING !result TYPE REF TO zcl_axage_result
+                cmd2    TYPE string OPTIONAL.
 
     METHODS walk_to
-      IMPORTING
-        direction TYPE clike
-        result TYPE REF TO zcl_axage_result
-        auto_look TYPE boolean
-      RETURNING VALUE(location) TYPE REF TO zcl_axage_room.
+      IMPORTING room           TYPE REF TO zcl_axage_room
+                !result        TYPE REF TO zcl_axage_result
+                auto_look      TYPE boolean
+      RETURNING VALUE(rv_gone) TYPE abap_bool.
 
     METHODS do_open
-      IMPORTING
-        box TYPE clike
-        player TYPE REF TO zcl_axage_actor
-        result TYPE REF TO zcl_axage_result.
+      IMPORTING !objects TYPE string_table
+                player  TYPE REF TO zcl_axage_actor
+                !result TYPE REF TO zcl_axage_result.
+
     METHODS do_ask
-      IMPORTING
-        name TYPE clike
-        player TYPE REF TO zcl_axage_actor
-        result TYPE REF TO zcl_axage_result.
+      IMPORTING !objects TYPE string_table
+                player  TYPE REF TO zcl_axage_actor
+                !result TYPE REF TO zcl_axage_result.
+
     METHODS do_weld
-      IMPORTING
-        object1 TYPE clike
-        object2 TYPE clike
-        player TYPE REF TO zcl_axage_actor
-        result TYPE REF TO zcl_axage_result.
+      IMPORTING !objects TYPE string_table
+                player  TYPE REF TO zcl_axage_actor
+                !result TYPE REF TO zcl_axage_result.
+
     METHODS do_splash
-      IMPORTING
-        object1 TYPE clike
-        object2 TYPE clike
-        player TYPE REF TO zcl_axage_actor
-        result TYPE REF TO zcl_axage_result.
+      IMPORTING !objects TYPE string_table
+                player  TYPE REF TO zcl_axage_actor
+                !result TYPE REF TO zcl_axage_result.
+
     METHODS do_dunk
-      IMPORTING
-        object1 TYPE clike
-        object2 TYPE clike
-        player TYPE REF TO zcl_axage_actor
-        result TYPE REF TO zcl_axage_result.
+      IMPORTING !objects TYPE string_table
+                player  TYPE REF TO zcl_axage_actor
+                !result TYPE REF TO zcl_axage_result.
 
     METHODS do_take
-      IMPORTING
-        object TYPE clike
-        from TYPE REF TO zcl_axage_thing_list
-        to TYPE REF TO zcl_axage_thing_list
-        result TYPE REF TO zcl_axage_result.
+      IMPORTING !objects TYPE string_table
+                player  TYPE REF TO zcl_axage_actor
+                !result  TYPE REF TO zcl_axage_result.
+
     METHODS drop
-      IMPORTING
-        object TYPE clike
-        from TYPE REF TO zcl_axage_thing_list
-        result TYPE REF TO zcl_axage_result.
+      IMPORTING !objects TYPE string_table
+                player  TYPE REF TO zcl_axage_actor
+                !result TYPE REF TO zcl_axage_result.
 
     METHODS add_help
-      IMPORTING
-        result TYPE REF TO zcl_axage_result.
+      IMPORTING !result TYPE REF TO zcl_axage_result.
 
+    METHODS validate1 IMPORTING param1       TYPE clike
+                                operation    TYPE clike
+                                !from        TYPE REF TO zcl_axage_thing_list
+                                !result      TYPE REF TO zcl_axage_result
+                      RETURNING VALUE(valid) TYPE abap_bool.
 ENDCLASS.
+
 
 CLASS zcl_axage_engine IMPLEMENTATION.
   METHOD constructor.
-
     map = NEW #( ).
     player = NEW #( name = 'PLAYER' descr = 'player name' ).
     actors = NEW #( ).
-
   ENDMETHOD.
 
   METHOD walk_to.
-    CASE direction.
-
-      WHEN 'N' OR 'NORTH'.
-        location = player->location->north.
-
-      WHEN 'S' OR 'SOUTH'.
-        location = player->location->south.
-
-      WHEN 'E' OR 'EAST'.
-        location = player->location->east.
-
-      WHEN 'W' OR 'WEST'.
-        location = player->location->west.
-
-      WHEN 'U' OR 'UP'.
-        location = player->location->up.
-
-      WHEN 'D' OR 'DOWN'.
-        location = player->location->down.
-    ENDCASE.
-
-    IF location IS BOUND.
-      IF location->name = zcl_axage_room=>no_exit->name.
+    rv_gone = abap_false.
+    IF room IS BOUND.
+      IF room->name = zcl_axage_room=>no_exit->name.
         result->add( 'you cannot go that way.' ).
       ELSE.
-        player->set_location( location ).
+        player->set_location( room ).
       ENDIF.
-      IF auto_look EQ abap_true.
+      IF auto_look = abap_true.
         cmd_look( result ).
       ENDIF.
+      rv_gone = abap_true.
+    ENDIF.
+  ENDMETHOD.
+
+  METHOD validate1.
+    valid = abap_false.
+    IF param1 IS INITIAL.
+      result->add( |{ operation } what?| ).
+    ELSEIF from->exists( param1 ).
+      result->add( |You { operation } the { param1 }| ).
+      valid = abap_true.
+    ELSEIF from->get_list( ) IS INITIAL.
+      result->add( |You have nothing to { operation }...| ).
+    ELSE.
+      result->add( |There is no { param1 } you can { operation }| ).
     ENDIF.
   ENDMETHOD.
 
   METHOD do_take.
-    IF from->exists( object ).
-      result->add( |You pickup the { object }| ).
+    DATA(object) = VALUE #( objects[ 1 ] OPTIONAL ).
+    DATA(from) = player->location->things.
+    DATA(to) = player->things.
+
+    IF validate1( param1 = object
+                  from = from
+                  operation = 'pickup'
+                  result = result ).
       to->add( from->get( object ) ).
       from->delete( object ).
-    ELSEIF from->get_list( ) IS INITIAL.
-      result->add( 'You cannot pickup any object' ).
-    ELSE.
-      result->add( |There is no { object } you can pickup| ).
     ENDIF.
   ENDMETHOD.
 
   METHOD drop.
-    IF from->exists( object ).
-      result->add( |You drop the { object }| ).
+    DATA(object) = VALUE #( objects[ 1 ] OPTIONAL ).
+    DATA(from) = player->things.
+    IF validate1( param1 = object
+                  from = from
+                  operation = 'drop'
+                  result = result ).
       from->delete( object ).
-    ELSEIF from->get_list( ) IS INITIAL.
-      result->add( 'There is nothing you can drop' ).
-    ELSE.
-      result->add( |There is no { object } you can drop| ).
     ENDIF.
   ENDMETHOD.
 
   METHOD do_open.
+     DATA(box)  = VALUE #( objects[ 1 ] OPTIONAL ).
+*    IF validate1( param1 = box
+*                  from = player->things
+*                  operation = 'open'
+*                  result = result ).
+*    ENDIF.
+
+
     IF box IS INITIAL.
       result->add( 'Open what?' ).
-    ELSEIF player->things->get_list( ) IS INITIAL
-    AND    player->location->things->get_list( ) IS INITIAL.
+    ELSEIF     player->things->get_list( )           IS INITIAL
+           AND player->location->things->get_list( ) IS INITIAL.
       result->add( 'There is nothing to open...' ).
     ELSE.
       IF player->things->exists( box ).
@@ -165,11 +167,11 @@ CLASS zcl_axage_engine IMPLEMENTATION.
         thing = player->location->things->get( box ).
       ENDIF.
 
-      IF thing IS INSTANCE OF zcl_axage_openable_thing.
-        DATA(thing_to_open) = CAST zcl_axage_openable_thing( thing ).
-        DATA finds TYPE string_table.
+      IF thing IS INSTANCE OF zif_axage_openable.
+        DATA(thing_to_open) = CAST zif_axage_openable( thing ).
         result->add( thing_to_open->open( player->things )->get( ) ).
         IF thing_to_open->is_open( ).
+          DATA finds TYPE string_table.
           LOOP AT thing_to_open->get_content( )->get_list( ) INTO DATA(content).
             APPEND |a { content->name }| TO finds.
           ENDLOOP.
@@ -187,6 +189,8 @@ CLASS zcl_axage_engine IMPLEMENTATION.
 
   METHOD do_ask.
     DATA actors_in_the_room TYPE STANDARD TABLE OF REF TO zcl_axage_actor.
+
+    DATA(name) = VALUE #( objects[ 1 ] OPTIONAL ).
 
     LOOP AT actors->get_list( ) INTO DATA(thing).
       DATA(actor) = CAST zcl_axage_actor( thing ).
@@ -213,45 +217,45 @@ CLASS zcl_axage_engine IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD do_weld.
-    IF object1 IS INITIAL OR object2 IS INITIAL.
-      result->add( 'Weld which 2 objects?' ).
-    ELSEIF player->things->get_list( ) IS INITIAL
-    AND    player->location->things->get_list( ) IS INITIAL.
-      result->add( 'There is nothing to weld...' ).
-    ELSE.
-      " to be implemented
-      result->add( |You cannot weld yet| ).
+   DATA(object1) = VALUE #( objects[ 1 ] OPTIONAL ).
+   DATA(object2) = VALUE #( objects[ 2 ] OPTIONAL ).
+
+    IF NOT validate1( param1 = object1
+                      from = player->things
+                      operation = 'weld'
+                      result = result ).
       RETURN.
-
-      IF player->things->exists( object1 ) AND player->things->exists( object2 ).
-        DATA(subject) = player->things->get( object1 ).
-        DATA(object) = player->things->get( object2 ).
-      ELSEIF player->location->things->exists( object1 ).
-        subject = player->location->things->get( object1 ).
-        object = player->things->get( object2 ).
-      ELSE.
-        subject = player->things->get( object1 ).
-        object = player->location->things->get( object2 ).
-      ENDIF.
-
-
-      IF subject IS BOUND.
-        result->add( |{ subject->name } cannot be weld!| ).
-      ELSE.
-        result->add( |You cannot weld { object1 }| ).
-      ENDIF.
     ENDIF.
 
+    IF validate1( param1 = object2
+                  from = player->things
+                  operation = 'weld to'
+                  result = result ).
+
+      IF player->location->things->exists( 'WELDING TORCH' ).
+        " to be implemented
+        result->add( |You cannot weld yet, the developer was lazy| ).
+        " Add new object object1+object2
+        " Remove 2 objects
+        RETURN.
+      ELSE.
+        result->add( 'There is no Welding Torch here...' ).
+      ENDIF.
+    ENDIF.
   ENDMETHOD.
 
   METHOD do_splash.
     " to be implemented
+     DATA(object1) = VALUE #( objects[ 1 ] OPTIONAL ).
+     DATA(object2) = VALUE #( objects[ 2 ] OPTIONAL ).
     result->add( |You are too early, I still have to learn how to Splash yet, Sorry| ).
     RETURN.
   ENDMETHOD.
 
   METHOD do_dunk.
     " to be implemented
+     DATA(object1) = VALUE #( objects[ 1 ] OPTIONAL ).
+     DATA(object2) = VALUE #( objects[ 2 ] OPTIONAL ).
     result->add( |You are too early, I still have to learn how to Dunk yet, Sorry| ).
     RETURN.
   ENDMETHOD.
@@ -272,7 +276,7 @@ CLASS zcl_axage_engine IMPLEMENTATION.
     result->add( |INV or INVENTORY  View everything you ae carrying| ).
     result->add( |LOOK              Describe your environment| ).
     result->add( |LOOK <object>     Have a closer look at the object in the room or in your inventory| ).
-    result->add( |PICKUP <object>   Pickup an object in the current place| ).
+    result->add( |PICKUP <object>   (or TAKE) Pickup an object in the current place| ).
     result->add( |DROP <object>     Drop an object that you carry| ).
     result->add( |OPEN <object>     Open something that is in the room| ).
     result->add( `` ).
@@ -285,25 +289,47 @@ CLASS zcl_axage_engine IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD interprete.
-    DATA cmd TYPE string. "c LENGTH 100.
+    DATA cmd TYPE string.
+    DATA next_room TYPE REF TO zcl_axage_room.
 
-    result = NEW #(  ).
+    result = NEW #( ).
 
     cmd = to_upper( command ).
 
-    SPLIT cmd AT space INTO DATA(cmd1) DATA(cmd2) DATA(cmd3).
+    SPLIT cmd AT space INTO DATA(action) DATA(cmd2).
+    SPLIT cmd2 AT space INTO TABLE DATA(params).
 
-    DATA(location) = walk_to( direction = cmd1
-                              result = result
-                              auto_look = auto_look ).
-    IF location IS BOUND.
+    CASE action.
+
+      WHEN 'N' OR 'NORTH'.
+        next_room = player->location->north.
+
+      WHEN 'S' OR 'SOUTH'.
+        next_room = player->location->south.
+
+      WHEN 'E' OR 'EAST'.
+        next_room = player->location->east.
+
+      WHEN 'W' OR 'WEST'.
+        next_room = player->location->west.
+
+      WHEN 'U' OR 'UP'.
+        next_room = player->location->up.
+
+      WHEN 'D' OR 'DOWN'.
+        next_room = player->location->down.
+    ENDCASE.
+
+    IF walk_to( room = next_room
+                result = result
+                auto_look = auto_look ).
       RETURN.
     ENDIF.
 
-    CASE cmd1.
+    CASE action.
       WHEN 'MAP'.
         result->addTab( map->show( ) ).
-        IF auto_look EQ abap_true.
+        IF auto_look = abap_true.
           cmd_look( result ).
         ENDIF.
 
@@ -315,20 +341,6 @@ CLASS zcl_axage_engine IMPLEMENTATION.
           result = result
           cmd2   = cmd2 ).
 
-      WHEN 'TAKE' OR 'PICKUP'.
-        do_take( object = cmd2
-                 from = player->location->things
-                 to = player->things
-                 result = result ).
-
-      WHEN 'DROP'.
-        drop( object = cmd2
-              from = player->things
-              result = result ).
-        IF auto_look EQ abap_true.
-          cmd_look( result ).
-        ENDIF.
-
       WHEN 'INV' OR 'INVENTORY'.
         IF player->things->get_list( ) IS INITIAL.
           result->add( 'You aren''t carrying anything' ).
@@ -337,47 +349,57 @@ CLASS zcl_axage_engine IMPLEMENTATION.
           result->addtab( player->things->show( ) ).
         ENDIF.
 
+      WHEN 'TAKE' OR 'PICKUP'.
+        do_take( objects = params
+                 player = player
+                 result = result ).
+
+      WHEN 'DROP'.
+        drop( objects = params
+              player = player
+              result = result ).
+        IF auto_look = abap_true.
+          cmd_look( result ).
+        ENDIF.
+
+
       WHEN 'OPEN'.
-        do_open( box = cmd2
+        do_open( objects = params
                  player = player
                  result = result ).
 
       WHEN 'ASK'.
-        do_ask( name = cmd2
+        do_ask( objects = params
                 player = player
                 result = result ).
 
       WHEN 'WELD'.
-        do_weld( object1 = cmd2
-                 object2 = cmd3
+        do_weld( objects = params
                  player = player
                  result = result ).
-        IF auto_look EQ abap_true.
+        IF auto_look = abap_true.
           cmd_look( result ).
         ENDIF.
 
       WHEN 'SPLASH'.
-        do_splash( object1 = cmd2
-                   object2 = cmd3
+        do_splash( objects = params
                    player = player
                    result = result ).
-        IF auto_look EQ abap_true.
+        IF auto_look = abap_true.
           cmd_look( result ).
         ENDIF.
 
       WHEN 'DUNK'.
-        do_dunk( object1 = cmd2
-                 object2 = cmd3
+        do_dunk( objects = params
                  player = player
                  result = result ).
-        IF auto_look EQ abap_true.
+        IF auto_look = abap_true.
           cmd_look( result ).
         ENDIF.
 
       WHEN OTHERS.
         result->add( 'You cannot do that' ).
     ENDCASE.
-
   ENDMETHOD.
 
   METHOD is_completed.
@@ -392,21 +414,17 @@ CLASS zcl_axage_engine IMPLEMENTATION.
       result->add( |Your inventory is empty...| ).
     ELSE.
       result->add( |You are carrying:| ).
-      LOOP AT your_things INTO DATA(thing_inv).
-        result->add( |{ thing_inv->name } { thing_inv->description }| ).
-      ENDLOOP.
-
     ENDIF.
+    LOOP AT your_things INTO DATA(thing_inv).
+      result->add( |{ thing_inv->name } { thing_inv->description }| ).
+    ENDLOOP.
   ENDMETHOD.
-
 
   METHOD get_location.
     result = player->location->name.
   ENDMETHOD.
 
-
   METHOD cmd_look.
-
     IF cmd2 IS INITIAL.
       LOOP AT actors->get_list( ) INTO DATA(thing).
         DATA(actor) = CAST zcl_axage_actor( thing ).
@@ -422,24 +440,8 @@ CLASS zcl_axage_engine IMPLEMENTATION.
         result->addtab( player->location->things->show( ) ).
       ENDIF.
 
-      IF player->location->east->name <> zcl_axage_room=>no_exit->name.
-        result->add( 'There is a door on the east side' ).
-      ENDIF.
-      IF player->location->west->name <> zcl_axage_room=>no_exit->name.
-        result->add( 'There is a door on the west side' ).
-      ENDIF.
-      IF player->location->north->name <> zcl_axage_room=>no_exit->name.
-        result->add( 'There is a door on the north side' ).
-      ENDIF.
-      IF player->location->south->name <> zcl_axage_room=>no_exit->name.
-        result->add( 'There is a door on the south side' ).
-      ENDIF.
-      IF player->location->up->name <> zcl_axage_room=>no_exit->name.
-        result->add( 'There is a ladder going upstairs' ).
-      ENDIF.
-      IF player->location->down->name <> zcl_axage_room=>no_exit->name.
-        result->add( 'There is a ladder going downstairs' ).
-      ENDIF.
+      zcl_axage_room=>add_exits( location = player->location
+                                 result = result ).
 
     ELSE.
       IF player->location->things->exists( cmd2 ).
@@ -450,6 +452,5 @@ CLASS zcl_axage_engine IMPLEMENTATION.
         result->add( |You cannot look at that { cmd2 }| ).
       ENDIF.
     ENDIF.
-
   ENDMETHOD.
 ENDCLASS.

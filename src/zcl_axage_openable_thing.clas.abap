@@ -5,23 +5,17 @@ CLASS zcl_axage_openable_thing DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
+    INTERFACES zif_axage_openable.
+    ALIASES: open FOR zif_axage_openable~open,
+             get_content FOR zif_axage_openable~get_content,
+             is_open FOR zif_axage_openable~is_open.
+
     METHODS constructor
       IMPORTING
         name    TYPE clike
         descr   TYPE clike
         needed  TYPE REF TO zcl_axage_thing_list
         content TYPE REF TO zcl_axage_thing_list.
-    METHODS get_content
-      RETURNING
-        VALUE(content) TYPE REF TO zcl_axage_thing_list.
-    METHODS open
-      IMPORTING
-        things        TYPE REF TO zcl_axage_thing_list
-      RETURNING
-        VALUE(result) TYPE REF TO zcl_axage_result.
-    METHODS is_open
-      RETURNING
-        VALUE(result) TYPE abap_bool.
 
     DATA needed TYPE REF TO zcl_axage_thing_list.
   PROTECTED SECTION.

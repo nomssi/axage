@@ -25,6 +25,9 @@ CLASS zcl_axage_room DEFINITION INHERITING FROM zcl_axage_thing
         e TYPE REF TO zcl_axage_room OPTIONAL
         s TYPE REF TO zcl_axage_room OPTIONAL
         w TYPE REF TO zcl_axage_room OPTIONAL.
+     CLASS-METHODS add_exits
+       IMPORTING location TYPE REF TO zcl_axage_room
+                 result TYPE REF TO zcl_axage_result.
   PROTECTED SECTION.
     METHODS set_exit
       IMPORTING
@@ -42,7 +45,8 @@ CLASS zcl_axage_room IMPLEMENTATION.
     things = NEW #( ).
   ENDMETHOD.
   METHOD class_constructor.
-    no_exit = NEW zcl_axage_room( name = 'No Exit' descr = 'There is no exit in this direction...' ).
+    no_exit = NEW zcl_axage_room( name = 'No Exit'
+                                  descr = 'There is no exit in this direction...' ).
   ENDMETHOD.
 
   METHOD set_exits.
@@ -53,6 +57,28 @@ CLASS zcl_axage_room IMPLEMENTATION.
     up    = set_exit( u ).
     down  = set_exit( d ).
   ENDMETHOD.
+
+  METHOD add_exits.
+    IF location->east->name <> no_exit->name.
+      result->add( 'There is a door on the east side' ).
+    ENDIF.
+    IF location->west->name <> no_exit->name.
+      result->add( 'There is a door on the west side' ).
+    ENDIF.
+    IF location->north->name <> no_exit->name.
+      result->add( 'There is a door on the north side' ).
+    ENDIF.
+    IF location->south->name <> no_exit->name.
+      result->add( 'There is a door on the south side' ).
+    ENDIF.
+    IF location->up->name <> no_exit->name.
+      result->add( 'There is a ladder going upstairs' ).
+    ENDIF.
+    IF location->down->name <> no_exit->name.
+      result->add( 'There is a ladder going downstairs' ).
+    ENDIF.
+  ENDMETHOD.
+
   METHOD set_exit.
     IF room IS BOUND.
       exit = room.
