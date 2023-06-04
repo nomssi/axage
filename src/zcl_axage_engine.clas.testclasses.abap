@@ -46,7 +46,7 @@ CLASS ltcl_engine IMPLEMENTATION.
     DATA(room_left) = NEW zcl_axage_room( name = 'LEFT' descr = 'Left room' ).
     DATA(room_right) = NEW zcl_axage_room( name = 'RIGHT' descr = 'Right room' ).
     room_left->set_exits( e = room_right ).
-    DATA(bottle) = NEW zcl_axage_thing( name = 'BOTTLE' descr = 'an empty bottle' ).
+    DATA(bottle) = NEW zcl_axage_thing( name = 'BOTTLE' state = 'an empty bottle' descr = 'whiskey' ).
     room_left->things->add( bottle ).
     room_right->set_exits( w = room_left ).
     cut->map->add_room( room_left ).

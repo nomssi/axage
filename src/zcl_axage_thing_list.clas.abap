@@ -4,33 +4,33 @@ CLASS zcl_axage_thing_list DEFINITION
 
   PUBLIC SECTION.
     INTERFACES if_serializable_object.
+
     TYPES _things TYPE STANDARD TABLE OF REF TO zcl_axage_thing WITH EMPTY KEY.
+
     METHODS constructor
-      IMPORTING
-        things TYPE _things OPTIONAL.
+      IMPORTING things TYPE _things OPTIONAL.
+
     METHODS get_list
       RETURNING VALUE(things) TYPE _things.
+
     METHODS get
-      IMPORTING
-        name         TYPE clike
-      RETURNING
-        VALUE(thing) TYPE REF TO zcl_axage_thing.
+      IMPORTING !name        TYPE clike
+      RETURNING VALUE(thing) TYPE REF TO zcl_axage_thing.
+
     METHODS show
-      RETURNING
-        VALUE(result) TYPE string_table.
+      RETURNING VALUE(result) TYPE string_table.
+
     METHODS add
-      IMPORTING
-        thing         TYPE REF TO zcl_axage_thing
-      RETURNING
-        VALUE(result) TYPE REF TO zcl_axage_result.
+      IMPORTING thing         TYPE REF TO zcl_axage_thing
+      RETURNING VALUE(result) TYPE REF TO zcl_axage_result.
+
     METHODS delete
-      IMPORTING
-        name TYPE clike.
+      IMPORTING !name TYPE clike.
+
     METHODS exists
-      IMPORTING
-        name          TYPE clike
-      RETURNING
-        VALUE(exists) TYPE abap_bool.
+      IMPORTING !name         TYPE clike
+      RETURNING VALUE(exists) TYPE abap_bool.
+
   PROTECTED SECTION.
     DATA things TYPE _things.
   PRIVATE SECTION.
@@ -57,7 +57,7 @@ CLASS zcl_axage_thing_list IMPLEMENTATION.
 
   METHOD show.
     LOOP AT things into DATA(currentThing).
-      APPEND |a { currentThing->name }| TO result.
+      APPEND currentThing->describe( ) TO result.
     ENDLOOP.
   ENDMETHOD.
 

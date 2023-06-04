@@ -41,7 +41,7 @@ ENDCLASS.
 
 CLASS zcl_axage_room IMPLEMENTATION.
   METHOD constructor.
-    super->constructor( name = name descr = descr ).
+    super->constructor( name = name state = space descr = descr ).
     things = NEW #( ).
   ENDMETHOD.
   METHOD class_constructor.

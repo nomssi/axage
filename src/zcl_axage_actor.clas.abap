@@ -6,9 +6,11 @@ CLASS zcl_axage_actor DEFINITION INHERITING FROM zcl_axage_thing
   PUBLIC SECTION.
     DATA location TYPE REF TO zcl_axage_room.
     DATA things TYPE REF TO zcl_axage_thing_list.
+    DATA nameUpperCase TYPE string READ-ONLY.
     METHODS constructor
       IMPORTING
         name  TYPE clike
+        state TYPE clike OPTIONAL
         descr TYPE clike.
     METHODS set_location
       IMPORTING
@@ -31,7 +33,8 @@ ENDCLASS.
 
 CLASS zcl_axage_actor IMPLEMENTATION.
   METHOD constructor.
-    super->constructor( name = name descr = descr ).
+    super->constructor( name = name state = state descr = descr ).
+    nameUpperCase = to_upper( me->name ).
     things = NEW #( ).
   ENDMETHOD.
 
