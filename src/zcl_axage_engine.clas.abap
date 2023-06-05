@@ -55,35 +55,9 @@ CLASS zcl_axage_engine DEFINITION
 ENDCLASS.
 
 
-CLASS zcl_axage_engine IMPLEMENTATION.
-  METHOD constructor.
-    map = NEW #( ).
-    player = NEW #( name = 'PLAYER' descr = 'player name' ).
-    actors = NEW #( ).
-    allowed_commands = VALUE #( ( action = 'ASK' execute = 'LCL_PICKUP' )
-                                ( action = 'DROP' execute = 'LCL_DROP' )
-                                ( action = 'DUNK' execute = 'LCL_DUNK' )
-                                ( action = 'OPEN' execute = 'LCL_OPEN' )
-                                ( action = 'PICKUP' execute = 'LCL_PICKUP' )
-                                ( action = 'SPLASH' execute = 'LCL_SPLASH' )
-                                ( action = 'TAKE' execute = 'LCL_PICKUP' )
-                                ( action = 'WELD' execute = 'LCL_WELD' ) ).
-  ENDMETHOD.
 
-  METHOD walk_to.
-    rv_gone = abap_false.
-    IF room IS BOUND.
-      IF room->name = zcl_axage_room=>no_exit->name.
-        result->add( 'you cannot go that way.' ).
-      ELSE.
-        player->set_location( room ).
-      ENDIF.
-      IF auto_look = abap_true.
-        cmd_look( result ).
-      ENDIF.
-      rv_gone = abap_true.
-    ENDIF.
-  ENDMETHOD.
+CLASS ZCL_AXAGE_ENGINE IMPLEMENTATION.
+
 
   METHOD add_help.
     result->add( `` ).
@@ -113,14 +87,74 @@ CLASS zcl_axage_engine IMPLEMENTATION.
     result->add( `` ).
   ENDMETHOD.
 
-  METHOD parse_command.
-    DATA cmd TYPE string.
 
-    cmd = to_upper( command ).
+  METHOD cmd_look.
+    IF params IS INITIAL.
+      LOOP AT actors->get_list( ) INTO DATA(thing).
+        DATA(actor) = CAST zcl_axage_actor( thing ).
+        IF actor->get_location( ) = player->location.
+          result->add( |There is { actor->to_text( ) }| ).
+        ENDIF.
+      ENDLOOP.
 
-    SPLIT cmd AT space INTO action DATA(cmd2).
-    SPLIT cmd2 AT space INTO TABLE params.
+      IF player->location->things->get_list( ) IS INITIAL.
+        result->add( 'There is nothing interesting to see...' ).
+      ELSE.
+        result->add( |You see| ).
+        result->addtab( player->location->things->show( ) ).
+      ENDIF.
+
+      zcl_axage_room=>add_exits( location = player->location
+                                 result = result ).
+
+    ELSE.
+      DATA(available_things) = player->location->things.
+      LOOP AT params INTO DATA(cmd2).
+        IF available_things->exists( cmd2 ).
+          result->add( |It's { available_things->get( cmd2 )->describe( ) }| ).
+        ELSEIF player->things->exists( cmd2 ).
+          result->add( |You carry a { player->things->get( cmd2 )->to_text( ) }| ).
+        ELSE.
+          result->add( |You cannot look at that { cmd2 }| ).
+        ENDIF.
+      ENDLOOP.
+    ENDIF.
   ENDMETHOD.
+
+
+  METHOD constructor.
+    map = NEW #( ).
+    player = NEW #( name = 'PLAYER' descr = 'player name' ).
+    actors = NEW #( ).
+    allowed_commands = VALUE #( ( action = 'ASK' execute = 'LCL_PICKUP' )
+                                ( action = 'DROP' execute = 'LCL_DROP' )
+                                ( action = 'DUNK' execute = 'LCL_DUNK' )
+                                ( action = 'OPEN' execute = 'LCL_OPEN' )
+                                ( action = 'PICKUP' execute = 'LCL_PICKUP' )
+                                ( action = 'SPLASH' execute = 'LCL_SPLASH' )
+                                ( action = 'TAKE' execute = 'LCL_PICKUP' )
+                                ( action = 'WELD' execute = 'LCL_WELD' ) ).
+  ENDMETHOD.
+
+
+  METHOD get_inventory.
+    DATA(your_things) = player->things->get_list( ).
+
+    IF lines( your_things ) IS INITIAL.
+      result->add( |Your inventory is empty...| ).
+    ELSE.
+      result->add( |You are carrying:| ).
+    ENDIF.
+    LOOP AT your_things INTO DATA(thing_inv).
+      result->add( thing_inv->to_text( ) ).
+    ENDLOOP.
+  ENDMETHOD.
+
+
+  METHOD get_location.
+    result = player->location->name.
+  ENDMETHOD.
+
 
   METHOD interprete.
 
@@ -201,61 +235,42 @@ CLASS zcl_axage_engine IMPLEMENTATION.
         get_inventory( result ).
 
       WHEN OTHERS.
-        result->add( 'You cannot do that' ).
+        IF action IS INITIAL.
+          result->add( 'Got your wizard hat on too tight? Try looking around' ).
+        ELSE.
+          result->add( |You cannot { action }| ).
+        ENDIF.
     ENDCASE.
   ENDMETHOD.
+
 
   METHOD is_completed.
     result = mission_completed.
   ENDMETHOD.
 
-  METHOD get_inventory.
-    DATA(your_things) = player->things->get_list( ).
 
-    IF lines( your_things ) IS INITIAL.
-      result->add( |Your inventory is empty...| ).
-    ELSE.
-      result->add( |You are carrying:| ).
-    ENDIF.
-    LOOP AT your_things INTO DATA(thing_inv).
-      result->add( thing_inv->to_text( ) ).
-    ENDLOOP.
+  METHOD parse_command.
+    DATA cmd TYPE string.
+
+    cmd = to_upper( command ).
+
+    SPLIT cmd AT space INTO action DATA(cmd2).
+    SPLIT cmd2 AT space INTO TABLE params.
   ENDMETHOD.
 
-  METHOD get_location.
-    result = player->location->name.
-  ENDMETHOD.
 
-  METHOD cmd_look.
-    IF params IS INITIAL.
-      LOOP AT actors->get_list( ) INTO DATA(thing).
-        DATA(actor) = CAST zcl_axage_actor( thing ).
-        IF actor->get_location( ) = player->location.
-          result->add( |There is { actor->to_text( ) }| ).
-        ENDIF.
-      ENDLOOP.
-
-      IF player->location->things->get_list( ) IS INITIAL.
-        result->add( 'There is nothing interesting to see...' ).
+  METHOD walk_to.
+    rv_gone = abap_false.
+    IF room IS BOUND.
+      IF room->name = zcl_axage_room=>no_exit->name.
+        result->add( 'you cannot go that way.' ).
       ELSE.
-        result->add( |You see| ).
-        result->addtab( player->location->things->show( ) ).
+        player->set_location( room ).
       ENDIF.
-
-      zcl_axage_room=>add_exits( location = player->location
-                                 result = result ).
-
-    ELSE.
-      DATA(available_things) = player->location->things.
-      LOOP AT params INTO DATA(cmd2).
-        IF available_things->exists( cmd2 ).
-          result->add( |It's { available_things->get( cmd2 )->describe( ) }| ).
-        ELSEIF player->things->exists( cmd2 ).
-          result->add( |You carry a { player->things->get( cmd2 )->to_text( ) }| ).
-        ELSE.
-          result->add( |You cannot look at that { cmd2 }| ).
-        ENDIF.
-      ENDLOOP.
+      IF auto_look = abap_true.
+        cmd_look( result ).
+      ENDIF.
+      rv_gone = abap_true.
     ENDIF.
   ENDMETHOD.
 ENDCLASS.

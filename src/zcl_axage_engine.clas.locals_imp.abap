@@ -16,7 +16,7 @@ CLASS lcl_action DEFINITION ABSTRACT.
                                   !result  TYPE REF TO zcl_axage_result.
 
   PROTECTED SECTION.
-    TYPES tt_thing_list TYPE STANDARD TABLE OF REF TO zcl_axage_thing_list.
+    TYPES tt_thing_list TYPE STANDARD TABLE OF REF TO zcl_axage_thing_list WITH EMPTY KEY.
     DATA objects TYPE string_table.
     DATA player TYPE REF TO zcl_axage_actor.
     DATA actors TYPE REF TO zcl_axage_thing_list.
@@ -74,7 +74,7 @@ CLASS lcl_action IMPLEMENTATION.
       ENDLOOP.
       IF eo_item IS BOUND.
 
-        DATA(attribute) = |ITEM->CAN_BE_{ to_upper( operation ) }|.
+        DATA(attribute) = |EO_ITEM->CAN_BE_{ to_upper( operation ) }|.
         ASSIGN (attribute) TO <flag>.
         IF sy-subrc = 0 AND <flag> = abap_false.
           result->add( |{ operation } is not allowed for a { into_object }| ).
@@ -268,19 +268,25 @@ ENDCLASS.
 
 CLASS lcl_splash IMPLEMENTATION.
   METHOD execute.
-    DATA item TYPE REF TO zcl_axage_thing.
-    DATA(object2) = VALUE #( objects[ 2 ] OPTIONAL ).
+    DATA item_subject TYPE REF TO zcl_axage_thing.
+    DATA item_object TYPE REF TO zcl_axage_thing.
 
-    IF validate1( operation = 'splash'
-                  it_from = VALUE #( ( owned_things ) ) ).
+    DATA(splash_subject) = param1.
+    DATA(splash_object) = VALUE #( objects[ 2 ] OPTIONAL ).
+    DATA(things_at_location) = VALUE tt_thing_list( ( owned_things ) ( available_things ) ).
 
-      IF validate( EXPORTING into_object = object2
-                             it_from = VALUE #( ( owned_things ) ( available_things ) )
+    IF validate( EXPORTING into_object = splash_subject
+                           it_from = things_at_location
+                           operation = 'splash'
+                 IMPORTING eo_item = item_subject ).
+
+      IF validate( EXPORTING into_object = splash_object
+                             it_from = things_at_location
                              operation = 'splash_into'
-                   IMPORTING eo_item = item ).
-        result->add( |You have splashed {  param1 } on {  object2 }| ).
-      ELSEIF item IS BOUND.
-        result->add( |You cannot splash {  param1 } into {  object2 }| ).
+                   IMPORTING eo_item = item_object ).
+        result->add( |You have splashed { splash_subject } on { splash_object }| ).
+      ELSEIF item_subject IS BOUND.
+        result->add( |You cannot splash { splash_subject } into { splash_object }| ).
       ENDIF.
 
     ENDIF.
@@ -296,34 +302,40 @@ ENDCLASS.
 
 CLASS lcl_dunk IMPLEMENTATION.
   METHOD execute.
-    DATA item TYPE REF TO zcl_axage_thing.
-    DATA(object2) = VALUE #( objects[ 2 ] OPTIONAL ).
+    DATA item_subject TYPE REF TO zcl_axage_thing.
+    DATA item_object TYPE REF TO zcl_axage_thing.
 
-    IF NOT validate1( operation = 'dunk'
-                      it_from = VALUE #( ( owned_things ) ) ).
-      RETURN.
-    ENDIF.
+    DATA(dunk_subject) = param1.
+    DATA(dunk_object) = VALUE #( objects[ 2 ] OPTIONAL ).
+    DATA(things_at_location) = VALUE tt_thing_list( ( owned_things ) ( available_things ) ).
 
-    IF validate( EXPORTING into_object = object2
-                           it_from = VALUE #( ( owned_things ) ( available_things ) )
-                           operation = 'dunk_into'
-                 IMPORTING eo_item = item ).
-    ENDIF.
+    IF validate( EXPORTING into_object = dunk_subject
+                           it_from = things_at_location
+                           operation = 'dunk'
+                 IMPORTING eo_item = item_subject ).
 
-    IF item IS BOUND AND item->can_be_dunk_into = abap_true.
+      IF validate( EXPORTING into_object = dunk_object
+                             it_from = things_at_location
+                             operation = 'dunk_into'
+                   IMPORTING eo_item = item_object ).
+        IF item_object IS BOUND AND item_object->can_be_dunk_into = abap_true.
 
-      result->add( |You have dunked the { param1 } into the {  object2 }| ).
-*      DATA(new_object_name) = |WET { param1 }|.
+          result->add( |You have dunked the { dunk_subject } into the { dunk_object }| ).
+*          DATA(new_object_name) = |WET { param1 }|.
 *
-*      " Add new object object1+object2
-*      owned_things->add( available_things->get( new_object_name ) ).
+*          " Add new object object1+object2
+*          owned_things->add( available_things->get( new_object_name ) ).
 
-      " Remove 1 objects
-*      owned_things->delete( param1 ).
+          " Remove 1 objects
+*          owned_things->delete( param1 ).
 
-    ELSE.
-      result->add( |You cannot dunk into { object2 }| ).
+        ELSE.
+          result->add( |You cannot dunk into { dunk_object }| ).
+        ENDIF.
+      ENDIF.
+
     ENDIF.
+
   ENDMETHOD.
 
 ENDCLASS.
