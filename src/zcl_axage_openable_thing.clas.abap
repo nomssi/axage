@@ -12,10 +12,18 @@ CLASS zcl_axage_openable_thing DEFINITION
 
     METHODS constructor
       IMPORTING
-        name    TYPE clike
-        descr   TYPE clike
+        name  TYPE clike
+        descr TYPE clike
+        state TYPE clike OPTIONAL
         needed  TYPE REF TO zcl_axage_thing_list
-        content TYPE REF TO zcl_axage_thing_list.
+        content TYPE REF TO zcl_axage_thing_list
+         can_be_pickup TYPE abap_bool DEFAULT abap_true
+         can_be_drop TYPE abap_bool DEFAULT  abap_true
+         can_weld TYPE abap_bool DEFAULT abap_false
+         can_be_weld TYPE abap_bool DEFAULT abap_false
+         can_be_open TYPE abap_bool DEFAULT abap_false
+         can_be_splash_into TYPE abap_bool DEFAULT abap_false
+         can_be_dunk_into TYPE abap_bool DEFAULT abap_false.
 
     DATA needed TYPE REF TO zcl_axage_thing_list.
   PROTECTED SECTION.
@@ -26,15 +34,25 @@ ENDCLASS.
 
 
 
-CLASS zcl_axage_openable_thing IMPLEMENTATION.
+CLASS ZCL_AXAGE_OPENABLE_THING IMPLEMENTATION.
+
 
   METHOD constructor.
     super->constructor(
       name  = name
-      descr = descr ).
+      descr = descr
+      state = state
+         can_be_pickup = can_be_pickup
+         can_be_drop = can_be_drop
+         can_weld = can_weld
+         can_be_weld = can_be_weld
+         can_be_open = can_be_open
+         can_be_splash_into = can_be_splash_into
+         can_be_dunk_into = can_be_dunk_into ).
     me->needed = needed.
     me->content = content.
   ENDMETHOD.
+
 
   METHOD get_content.
     IF opened = abap_true.
@@ -42,9 +60,11 @@ CLASS zcl_axage_openable_thing IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 
+
   METHOD is_open.
     result = opened.
   ENDMETHOD.
+
 
   METHOD open.
     result = NEW #( ).
@@ -65,5 +85,4 @@ CLASS zcl_axage_openable_thing IMPLEMENTATION.
 
     opened = me->opened.
   ENDMETHOD.
-
 ENDCLASS.
