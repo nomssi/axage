@@ -11,9 +11,9 @@ CLASS lcl_action DEFINITION ABSTRACT.
     INTERFACES lif_axage_command ABSTRACT METHODS execute.
     ALIASES execute FOR lif_axage_command~execute.
     METHODS constructor IMPORTING objects TYPE string_table
-                                  player   TYPE REF TO zcl_axage_actor
-                                  actors   TYPE REF TO zcl_axage_thing_list
-                                  !result  TYPE REF TO zcl_axage_result.
+                                  player  TYPE REF TO zcl_axage_actor
+                                  actors  TYPE REF TO zcl_axage_thing_list
+                                  !result TYPE REF TO zcl_axage_result.
 
   PROTECTED SECTION.
     TYPES tt_thing_list TYPE STANDARD TABLE OF REF TO zcl_axage_thing_list WITH EMPTY KEY.
@@ -26,14 +26,14 @@ CLASS lcl_action DEFINITION ABSTRACT.
     DATA owned_things TYPE REF TO zcl_axage_thing_list.
     DATA available_things TYPE REF TO zcl_axage_thing_list.
 
-    METHODS validate1 IMPORTING operation TYPE string
-                                it_from TYPE tt_thing_list
-                      EXPORTING eo_item TYPE REF TO zcl_axage_thing
+    METHODS validate1 IMPORTING operation    TYPE string
+                                it_from      TYPE tt_thing_list
+                      EXPORTING eo_item      TYPE REF TO zcl_axage_thing
                       RETURNING VALUE(valid) TYPE abap_bool.
-    METHODS validate IMPORTING into_object TYPE string
-                               operation TYPE string
-                               it_from TYPE tt_thing_list
-                     EXPORTING eo_item TYPE REF TO zcl_axage_thing
+    METHODS validate IMPORTING into_object  TYPE string
+                               operation    TYPE string
+                               it_from      TYPE tt_thing_list
+                     EXPORTING eo_item      TYPE REF TO zcl_axage_thing
                      RETURNING VALUE(valid) TYPE abap_bool.
 
 ENDCLASS.
@@ -133,43 +133,50 @@ ENDCLASS.
 CLASS lcl_open DEFINITION INHERITING FROM lcl_action.
   PUBLIC SECTION.
     METHODS execute REDEFINITION.
+  PROTECTED SECTION.
+    METHODS empty IMPORTING box         TYPE REF TO zcl_axage_thing
+                            log         TYPE REF TO zcl_axage_result
+                  RETURNING VALUE(done) TYPE abap_bool.
 ENDCLASS.
 
 CLASS lcl_open IMPLEMENTATION.
 
+  METHOD empty.
+    IF box IS INSTANCE OF zif_axage_openable.
+      done = abap_true.
+      RETURN.
+    ENDIF.
+    done = abap_true.
+    DATA(container) = CAST zif_axage_openable( box ).
+    log->add( container->open( player->things )->get( ) ).
+    IF container->is_open( ).
+
+      DATA finds TYPE string_table.
+      LOOP AT container->get_content( )->get_list( ) INTO DATA(content).
+        APPEND |a { content->name }| TO finds.
+      ENDLOOP.
+      log->add( |The { box->name } contains:| ).
+      log->addtab( finds ).
+
+      player->things->add( content ).
+    ENDIF.
+  ENDMETHOD.
+
   METHOD execute.
     DATA item TYPE REF TO zcl_axage_thing.
 
-    IF NOT validate1( EXPORTING operation = 'open'
-                                it_from = VALUE #( ( owned_things )
-                                                   ( available_things )  )
-                      IMPORTING eo_item = item ).
-      RETURN.
-    ENDIF.
-
-    IF param1 IS NOT INITIAL.
-
-      IF item IS INSTANCE OF zif_axage_openable.
-        DATA(container) = CAST zif_axage_openable( item ).
-        result->add( container->open( player->things )->get( ) ).
-        IF container->is_open( ).
-
-          DATA finds TYPE string_table.
-          LOOP AT container->get_content( )->get_list( ) INTO DATA(content).
-            APPEND |a { content->name }| TO finds.
-          ENDLOOP.
-          result->add( |The { item->name } contains:| ).
-          result->addtab( finds ).
-
-          player->things->add( content ).
-        ENDIF.
-      ELSEIF item IS BOUND.
+    IF validate( EXPORTING into_object = param1
+                           operation = 'open'
+                           it_from = VALUE #( ( owned_things )
+                                              ( available_things )  )
+                 IMPORTING eo_item = item ).
+      IF item IS NOT BOUND.
+        result->add( |There is no { param1 } to open| ).
+      ELSEIF NOT empty( log = result
+                        box = item ).
         result->add( |{ item->name } cannot be opened!| ).
-      ELSE.
-        result->add( |You cannot open that { param1 }| ).
       ENDIF.
     ENDIF.
-
   ENDMETHOD.
 
 ENDCLASS.
@@ -180,8 +187,8 @@ CLASS lcl_ask DEFINITION INHERITING FROM lcl_action.
 
     METHODS execute REDEFINITION.
 
-    METHODS filter_actors IMPORTING things TYPE REF TO zcl_axage_thing_list
-                                    room TYPE REF TO zcl_axage_room
+    METHODS filter_actors IMPORTING things           TYPE REF TO zcl_axage_thing_list
+                                    room             TYPE REF TO zcl_axage_room
                           RETURNING VALUE(rt_actors) TYPE list_of_actors.
 ENDCLASS.
 
@@ -210,7 +217,7 @@ CLASS lcl_ask IMPLEMENTATION.
       IF name IS INITIAL.
         result->add( 'Whom do you want to ask?' ).
       ELSE.
-        LOOP AT actors_in_the_room INTO DATA(actor) WHERE TABLE_LINE->nameUpperCase = name.
+        LOOP AT actors_in_the_room INTO DATA(actor) WHERE table_line->nameuppercase = name.
           result->addtab( actor->speak( ) ).
         ENDLOOP.
         IF sy-subrc NE 0.
@@ -228,7 +235,7 @@ ENDCLASS.
 
 CLASS lcl_weld IMPLEMENTATION.
   METHOD execute.
-   DATA(object2) = VALUE #( objects[ 2 ] OPTIONAL ).
+    DATA(object2) = VALUE #( objects[ 2 ] OPTIONAL ).
     IF validate1( operation = 'weld'
                   it_from = VALUE #( ( owned_things ) ) ).
       IF validate( into_object = object2
@@ -236,24 +243,24 @@ CLASS lcl_weld IMPLEMENTATION.
                    operation = 'weld into' ).
         DATA(available_things) = player->location->things.
 
-          " can_weld_at_this_location ?
-          LOOP AT player->location->things->get_list( ) INTO DATA(thing) WHERE TABLE_LINE->can_weld = abap_true.
+        " can_weld_at_this_location ?
+        LOOP AT player->location->things->get_list( ) INTO DATA(thing) WHERE table_line->can_weld = abap_true.
 
 
-            result->add( |You have welded {  param1 } to {  object2 }| ).
-            DATA(new_object_name) = |{ param1 }+{  object2 }|.
+          result->add( |You have welded {  param1 } to {  object2 }| ).
+          DATA(new_object_name) = |{ param1 }+{  object2 }|.
 
-            " Add new object object1+object2
-            owned_things->add( available_things->get( new_object_name ) ).
+          " Add new object object1+object2
+          owned_things->add( available_things->get( new_object_name ) ).
 
-            " Remove 2 objects
-            owned_things->delete( param1 ).
-            owned_things->delete( object2 ).
+          " Remove 2 objects
+          owned_things->delete( param1 ).
+          owned_things->delete( object2 ).
 
-            RETURN.
-          ENDLOOP..
+          RETURN.
+        ENDLOOP..
 
-          result->add( 'There is no Welding Torch here...' ).
+        result->add( 'There is no Welding Torch here...' ).
       ENDIF.
     ENDIF.
 
@@ -336,6 +343,31 @@ CLASS lcl_dunk IMPLEMENTATION.
 
     ENDIF.
 
+  ENDMETHOD.
+
+ENDCLASS.
+
+CLASS lcl_cast DEFINITION INHERITING FROM lcl_action.
+  PUBLIC SECTION.
+    METHODS execute REDEFINITION.
+ENDCLASS.
+
+CLASS lcl_cast IMPLEMENTATION.
+
+  METHOD execute.
+    DATA lo_item TYPE REF TO zcl_axage_thing.
+
+    IF validate( EXPORTING into_object = param1
+                           operation = 'cast'
+                           it_from = VALUE #( ( owned_things ) )
+                 IMPORTING eo_item = lo_item ).
+      IF lo_item IS BOUND.
+        player->location->dark = abap_false.
+        result->add( |You cast the spell { lo_item->describe( ) }| ).
+      ELSE.
+        result->add( |You have not learned that spell yet| ).
+      ENDIF.
+    ENDIF.
   ENDMETHOD.
 
 ENDCLASS.

@@ -33,12 +33,19 @@ CLASS zcl_axage_engine DEFINITION
     DATA mission_completed TYPE abap_bool.
     DATA allowed_commands  TYPE tt_action.
 
-  PRIVATE SECTION.
+  PROTECTED SECTION.
+
+    METHODS next_room IMPORTING action TYPE string
+                      RETURNING VALUE(target) TYPE REF TO zcl_axage_room.
+
+    METHODS custom_action IMPORTING action TYPE clike
+                                    params TYPE string_table
+                                    result TYPE REF TO zcl_axage_result
+                          RETURNING VALUE(executed) TYPE abap_bool.
 
     METHODS parse_command IMPORTING command TYPE string
                           EXPORTING action TYPE string
                                     params TYPE string_table.
-
     METHODS cmd_look
       IMPORTING !result TYPE REF TO zcl_axage_result
                 params  TYPE string_table OPTIONAL.
@@ -46,12 +53,19 @@ CLASS zcl_axage_engine DEFINITION
     METHODS walk_to
       IMPORTING room           TYPE REF TO zcl_axage_room
                 !result        TYPE REF TO zcl_axage_result
-                auto_look      TYPE boolean
       RETURNING VALUE(rv_gone) TYPE abap_bool.
 
     METHODS add_help
       IMPORTING !result TYPE REF TO zcl_axage_result.
 
+  PRIVATE SECTION.
+    METHODS look_around
+      IMPORTING result TYPE REF TO zcl_axage_result
+                location TYPE REF TO zcl_axage_room.
+
+    METHODS look_at
+      IMPORTING result TYPE REF TO zcl_axage_result
+                object_list TYPE string_table OPTIONAL.
 ENDCLASS.
 
 
@@ -81,6 +95,7 @@ CLASS ZCL_AXAGE_ENGINE IMPLEMENTATION.
     result->add( `` ).
     result->add( `Other Commands:` ).
     result->add( |ASK <person>            Ask a person to tell you something| ).
+    result->add( |CAST <spell>            You must use the Spell name| ).
     result->add( |WELD <subject> <object>   Weld subject to the object if allowed| ).
     result->add( |DUNK <subject> <object>   Dunk subject into object if allowed| ).
     result->add( |SPLASH <subject> <object> Splash  subject into object| ).
@@ -89,35 +104,16 @@ CLASS ZCL_AXAGE_ENGINE IMPLEMENTATION.
 
 
   METHOD cmd_look.
+    IF player->location->dark EQ abap_true.
+      result->add( 'You cannot see in the dark.' ).
+      RETURN.
+    ENDIF.
     IF params IS INITIAL.
-      LOOP AT actors->get_list( ) INTO DATA(thing).
-        DATA(actor) = CAST zcl_axage_actor( thing ).
-        IF actor->get_location( ) = player->location.
-          result->add( |There is { actor->to_text( ) }| ).
-        ENDIF.
-      ENDLOOP.
-
-      IF player->location->things->get_list( ) IS INITIAL.
-        result->add( 'There is nothing interesting to see...' ).
-      ELSE.
-        result->add( |You see| ).
-        result->addtab( player->location->things->show( ) ).
-      ENDIF.
-
-      zcl_axage_room=>add_exits( location = player->location
-                                 result = result ).
-
+      look_around( location = player->location   " Surroundings
+                   result = result ).
     ELSE.
-      DATA(available_things) = player->location->things.
-      LOOP AT params INTO DATA(cmd2).
-        IF available_things->exists( cmd2 ).
-          result->add( |It's { available_things->get( cmd2 )->describe( ) }| ).
-        ELSEIF player->things->exists( cmd2 ).
-          result->add( |You carry a { player->things->get( cmd2 )->to_text( ) }| ).
-        ELSE.
-          result->add( |You cannot look at that { cmd2 }| ).
-        ENDIF.
-      ENDLOOP.
+      look_at( object_list = params              " Object list
+               result = result ).
     ENDIF.
   ENDMETHOD.
 
@@ -127,6 +123,7 @@ CLASS ZCL_AXAGE_ENGINE IMPLEMENTATION.
     player = NEW #( name = 'PLAYER' descr = 'player name' ).
     actors = NEW #( ).
     allowed_commands = VALUE #( ( action = 'ASK' execute = 'LCL_PICKUP' )
+                                ( action = 'CAST' execute = 'LCL_CAST' )
                                 ( action = 'DROP' execute = 'LCL_DROP' )
                                 ( action = 'DUNK' execute = 'LCL_DUNK' )
                                 ( action = 'OPEN' execute = 'LCL_OPEN' )
@@ -134,6 +131,31 @@ CLASS ZCL_AXAGE_ENGINE IMPLEMENTATION.
                                 ( action = 'SPLASH' execute = 'LCL_SPLASH' )
                                 ( action = 'TAKE' execute = 'LCL_PICKUP' )
                                 ( action = 'WELD' execute = 'LCL_WELD' ) ).
+  ENDMETHOD.
+
+
+  METHOD custom_action.
+    DATA lo_action TYPE REF TO lcl_action.
+
+    executed = abap_false.
+    DATA(classname) = VALUE #( allowed_commands[ action = action ]-execute OPTIONAL ).
+
+    IF classname IS NOT INITIAL.
+      TRY.
+          CREATE OBJECT lo_action TYPE (classname)
+            EXPORTING objects = params
+                      player = player
+                      actors = actors
+                      result = result.
+          IF lo_action IS BOUND.
+            lo_action->execute( ).
+            executed = abap_true.
+          ENDIF.
+        CATCH cx_root.
+
+      ENDTRY.
+
+    ENDIF.
   ENDMETHOD.
 
 
@@ -157,9 +179,7 @@ CLASS ZCL_AXAGE_ENGINE IMPLEMENTATION.
 
 
   METHOD interprete.
-
-    DATA next_room TYPE REF TO zcl_axage_room.
-    DATA lo_action TYPE REF TO lcl_action.
+    DATA processed TYPE abap_bool VALUE abap_false.
 
     result = NEW #( ).
 
@@ -167,85 +187,108 @@ CLASS ZCL_AXAGE_ENGINE IMPLEMENTATION.
                    IMPORTING action = DATA(action)
                              params = DATA(params) ).
 
-    CASE action.
-
-      WHEN 'N' OR 'NORTH'.
-        next_room = player->location->north.
-
-      WHEN 'S' OR 'SOUTH'.
-        next_room = player->location->south.
-
-      WHEN 'E' OR 'EAST'.
-        next_room = player->location->east.
-
-      WHEN 'W' OR 'WEST'.
-        next_room = player->location->west.
-
-      WHEN 'U' OR 'UP'.
-        next_room = player->location->up.
-
-      WHEN 'D' OR 'DOWN'.
-        next_room = player->location->down.
-    ENDCASE.
-
-    IF walk_to( room = next_room
-                result = result
-                auto_look = auto_look ).
-      RETURN.
+    processed = walk_to( room = next_room( action )
+                         result = result ).
+    IF processed = abap_false.
+      processed = custom_action( action = action
+                                 params = params
+                                 result = result ).
     ENDIF.
 
-    DATA(classname) = VALUE #( allowed_commands[ action = action ]-execute OPTIONAL ).
+    IF processed = abap_false.
+      CASE action.
+        WHEN 'MAP'.
+          result->addTab( map->show( ) ).
+          processed = abap_true.
 
-    IF classname IS NOT INITIAL.
-      TRY.
-          CREATE OBJECT lo_action TYPE (classname)
-            EXPORTING objects = params
-                      player = player
-                      actors = actors
-                      result = result.
-          IF lo_action IS BOUND.
-            lo_action->execute( ).
-            IF auto_look = abap_true.
-              cmd_look( result ).
-            ENDIF.
-            RETURN.
+        WHEN 'HELP'.
+          add_help( result ).
+
+        WHEN 'LOOK'.
+          cmd_look(
+            result = result
+            params = params ).
+
+        WHEN 'INV' OR 'INVENTORY'.
+          get_inventory( result ).
+
+        WHEN OTHERS.
+          IF action IS INITIAL.
+            result->add( 'Got your wizard hat on too tight? Try looking around' ).
+          ELSE.
+            result->add( |You cannot { action }| ).
           ENDIF.
-        CATCH cx_root.
-
-      ENDTRY.
-
+      ENDCASE.
     ENDIF.
 
-    CASE action.
-      WHEN 'MAP'.
-        result->addTab( map->show( ) ).
-        IF auto_look = abap_true.
-          cmd_look( result ).
-        ENDIF.
-
-      WHEN 'HELP'.
-        add_help( result ).
-
-      WHEN 'LOOK'.
-        cmd_look(
-          result = result
-          params = params ).
-
-      WHEN 'INV' OR 'INVENTORY'.
-        get_inventory( result ).
-
-      WHEN OTHERS.
-        IF action IS INITIAL.
-          result->add( 'Got your wizard hat on too tight? Try looking around' ).
-        ELSE.
-          result->add( |You cannot { action }| ).
-        ENDIF.
-    ENDCASE.
+    IF processed = abap_true.
+      IF auto_look = abap_true.
+        cmd_look( result ).
+      ENDIF.
+    ENDIF.
   ENDMETHOD.
 
 
   METHOD is_completed.
     result = mission_completed.
+  ENDMETHOD.
+
+
+  METHOD look_around.
+    LOOP AT actors->get_list( ) INTO DATA(thing).
+      DATA(actor) = CAST zcl_axage_actor( thing ).
+      IF actor->get_location( ) = player->location.
+        result->add( |There is { actor->to_text( ) }| ).
+      ENDIF.
+    ENDLOOP.
+
+    IF player->location->things->get_list( ) IS INITIAL.
+      result->add( 'There is nothing interesting to see...' ).
+    ELSE.
+      result->add( |You see| ).
+      result->addtab( player->location->things->show( ) ).
+    ENDIF.
+
+    zcl_axage_room=>add_exits( location = player->location
+                               result = result ).
+  ENDMETHOD.
+
+
+  METHOD look_at.
+    DATA(available_things) = player->location->things.
+    LOOP AT object_list INTO DATA(an_object).
+      IF available_things->exists( an_object ).
+        result->add( |It's { available_things->get( an_object )->describe( ) }| ).
+      ELSEIF player->things->exists( an_object ).
+        result->add( |You carry a { player->things->get( an_object )->to_text( ) }| ).
+      ELSE.
+        result->add( |There is no { an_object } to look at| ).
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
+
+  METHOD next_room.
+    CLEAR target.
+    CASE action.
+      WHEN 'N' OR 'NORTH'.
+        target = player->location->north.
+
+      WHEN 'S' OR 'SOUTH'.
+        target = player->location->south.
+
+      WHEN 'E' OR 'EAST'.
+        target = player->location->east.
+
+      WHEN 'W' OR 'WEST'.
+        target = player->location->west.
+
+      WHEN 'U' OR 'UP'.
+        target = player->location->up.
+
+      WHEN 'D' OR 'DOWN'.
+        target = player->location->down.
+    ENDCASE.
   ENDMETHOD.
 
 
@@ -266,9 +309,6 @@ CLASS ZCL_AXAGE_ENGINE IMPLEMENTATION.
         result->add( 'you cannot go that way.' ).
       ELSE.
         player->set_location( room ).
-      ENDIF.
-      IF auto_look = abap_true.
-        cmd_look( result ).
       ENDIF.
       rv_gone = abap_true.
     ENDIF.

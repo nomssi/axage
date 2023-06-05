@@ -39,7 +39,9 @@ ENDCLASS.
 
 
 
-CLASS zcl_axage_thing IMPLEMENTATION.
+CLASS ZCL_AXAGE_THING IMPLEMENTATION.
+
+
   METHOD constructor.
     me->name = name.
     me->description = descr.
@@ -57,13 +59,6 @@ CLASS zcl_axage_thing IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD to_text.
-    IF description IS INITIAL.
-      text = name.
-    ELSE.
-      text = |{ name } { description }|.
-    ENDIF.
-  ENDMETHOD.
 
   METHOD describe.
     text = `a ` && to_text( ).
@@ -72,4 +67,12 @@ CLASS zcl_axage_thing IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 
+
+  METHOD to_text.
+    IF description IS INITIAL.
+      text = name.
+    ELSE.
+      text = |{ name } { description }|.
+    ENDIF.
+  ENDMETHOD.
 ENDCLASS.
