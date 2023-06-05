@@ -147,27 +147,26 @@ CLASS lcl_open IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    DATA(box) = param1.
-
-    IF box IS INITIAL.
-    ELSE.
+    IF param1 IS NOT INITIAL.
 
       IF item IS INSTANCE OF zif_axage_openable.
-        DATA(thing_to_open) = CAST zif_axage_openable( item ).
-        result->add( thing_to_open->open( player->things )->get( ) ).
-        IF thing_to_open->is_open( ).
+        DATA(container) = CAST zif_axage_openable( item ).
+        result->add( container->open( player->things )->get( ) ).
+        IF container->is_open( ).
+
           DATA finds TYPE string_table.
-          LOOP AT thing_to_open->get_content( )->get_list( ) INTO DATA(content).
+          LOOP AT container->get_content( )->get_list( ) INTO DATA(content).
             APPEND |a { content->name }| TO finds.
           ENDLOOP.
           result->add( |The { item->name } contains:| ).
           result->addtab( finds ).
+
           player->things->add( content ).
         ENDIF.
       ELSEIF item IS BOUND.
         result->add( |{ item->name } cannot be opened!| ).
       ELSE.
-        result->add( |You cannot open that { box }| ).
+        result->add( |You cannot open that { param1 }| ).
       ENDIF.
     ENDIF.
 
