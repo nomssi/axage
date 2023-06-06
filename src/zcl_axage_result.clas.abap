@@ -21,6 +21,11 @@ CLASS zcl_axage_result DEFINITION
     METHODS get
       RETURNING
         VALUE(textString) TYPE string.
+
+    METHODS last_message
+      RETURNING
+        VALUE(textString) TYPE string.
+
   PROTECTED SECTION.
     DATA text TYPE string_table.
   PRIVATE SECTION.
@@ -28,15 +33,18 @@ ENDCLASS.
 
 
 
-CLASS zcl_axage_result IMPLEMENTATION.
+CLASS ZCL_AXAGE_RESULT IMPLEMENTATION.
+
 
   METHOD add.
     APPEND text TO me->text.
   ENDMETHOD.
 
-  METHOD insert.
-    INSERT text INTO me->text INDEX 1.
+
+  METHOD addTab.
+    APPEND LINES OF textTab TO text.
   ENDMETHOD.
+
 
   METHOD get.
     LOOP AT text REFERENCE INTO DATA(line).
@@ -44,9 +52,20 @@ CLASS zcl_axage_result IMPLEMENTATION.
     ENDLOOP.
   ENDMETHOD.
 
-  METHOD addTab.
-    APPEND LINES OF textTab TO text.
+
+  METHOD insert.
+    INSERT text INTO me->text INDEX 1.
   ENDMETHOD.
+
+
+  METHOD last_message.
+    CLEAR textstring.
+    DATA(count) = lines( text ).
+    IF count > 0.
+      textstring = text[ count ].
+    ENDIF.
+  ENDMETHOD.
+
 
   METHOD reset.
     CLEAR text.

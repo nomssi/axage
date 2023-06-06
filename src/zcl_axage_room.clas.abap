@@ -12,6 +12,7 @@ CLASS zcl_axage_room DEFINITION INHERITING FROM zcl_axage_thing
     DATA down TYPE REF TO zcl_axage_room.
     DATA things TYPE REF TO zcl_axage_thing_list.
     DATA dark TYPE abap_bool.
+    DATA image_data TYPE string.
     CLASS-DATA no_exit TYPE REF TO zcl_axage_room.
     CLASS-METHODS class_constructor.
     METHODS constructor
@@ -19,7 +20,8 @@ CLASS zcl_axage_room DEFINITION INHERITING FROM zcl_axage_thing
         name  TYPE clike
         descr TYPE clike
         state TYPE clike OPTIONAL
-        dark TYPE abap_bool OPTIONAL.
+        dark TYPE abap_bool OPTIONAL
+        image_data TYPE string OPTIONAL.
     METHODS set_exits
       IMPORTING
         u TYPE REF TO zcl_axage_room OPTIONAL
@@ -76,6 +78,7 @@ CLASS ZCL_AXAGE_ROOM IMPLEMENTATION.
   METHOD constructor.
     super->constructor( name = name state = state descr = descr ).
     me->dark = dark.
+    me->image_data = image_data.
     things = NEW #( ).
   ENDMETHOD.
 
