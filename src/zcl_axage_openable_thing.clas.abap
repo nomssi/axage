@@ -51,7 +51,7 @@ CLASS ZCL_AXAGE_OPENABLE_THING IMPLEMENTATION.
          can_be_drop = can_be_drop
          can_weld = can_weld
          can_be_weld = can_be_weld
-         can_be_open = can_be_open
+         can_be_open = abap_true
          can_be_splash_into = can_be_splash_into
          can_be_dunk_into = can_be_dunk_into
          engine = engine ).
@@ -61,7 +61,13 @@ CLASS ZCL_AXAGE_OPENABLE_THING IMPLEMENTATION.
 
 
   METHOD details.
-    IF needed->get_list( ) IS INITIAL AND location->dark EQ abap_false.
+    DATA(dark) = abap_false.
+    IF location IS INSTANCE OF zcl_axage_room
+      AND CAST zcl_axage_room( location )->dark = abap_true.
+      dark = abap_true.
+    ENDIF.
+
+    IF needed->get_list( ) IS INITIAL AND dark EQ abap_false.
        me->opened = abap_true.
     ENDIF.
   ENDMETHOD.
@@ -86,7 +92,8 @@ CLASS ZCL_AXAGE_OPENABLE_THING IMPLEMENTATION.
     LOOP AT needed->get_list( ) INTO DATA(open_with).
       IF things->exists( open_with->name ).
         allowed = abap_true.
-        result->add( |The { name } is now open| ).
+        me->state = |The { name } is now open|.
+        result->add( me->state ).
         me->opened = abap_true.
         EXIT. "from loop
       ENDIF.

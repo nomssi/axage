@@ -9,7 +9,7 @@ INTERFACE zif_axage_openable
     RETURNING VALUE(result) TYPE REF TO zcl_axage_result.
 
   METHODS details
-    IMPORTING location      TYPE REF TO zcl_axage_room.
+    IMPORTING location      TYPE REF TO zcl_axage_thing.
 
   METHODS is_open
     RETURNING VALUE(result) TYPE abap_bool.

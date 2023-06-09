@@ -186,6 +186,7 @@ CLASS lcl_open IMPLEMENTATION.
       ENDLOOP.
       log->add( |The { box->name } contains:| ).
       log->addtab( finds ).
+      log->add( |You have picked up the contains of the { box->name }.| ).
 
       player->add( content ).
       log->add_msg( type = 'Success'
@@ -418,7 +419,7 @@ CLASS lcl_look DEFINITION INHERITING FROM lcl_action.
     METHODS execute REDEFINITION.
     METHODS details IMPORTING !object TYPE REF TO zcl_axage_thing
                                log    TYPE REF TO zcl_axage_result
-                               location TYPE REF TO zcl_axage_room
+                               location TYPE REF TO zcl_axage_thing
                     RETURNING VALUE(done) TYPE abap_bool.
 ENDCLASS.
 
@@ -430,7 +431,7 @@ CLASS lcl_look IMPLEMENTATION.
                              operation = 'look'
                              it_from = available_things
                    IMPORTING eo_item = item ).
-        result->add( |You look at the { param1 }).| ).
+        result->add( |You look at the { param1 }.| ).
         result->add( |You see { item->describe( ) }| ).
         details( log = result
                  location = player->location
@@ -447,6 +448,9 @@ CLASS lcl_look IMPLEMENTATION.
                        IMPORTING eo_item = item ).
         result->add( |You look at the { param1 } you are carrying.| ).
         result->add( |You see { item->describe( ) }| ).
+        details( log = result
+                 location = player
+                 object = item ).
 
         result->add_msg( type = 'Success'
                          title = |look at { param1 }|
