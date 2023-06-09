@@ -16,6 +16,7 @@ CLASS zcl_axage_openable_thing DEFINITION
       IMPORTING !name              TYPE clike
                 descr              TYPE clike
                 !state             TYPE clike     OPTIONAL
+                prefix             TYPE string DEFAULT zcl_axage_thing=>c_prefix
                 needed             TYPE REF TO zcl_axage_thing
                 content            TYPE REF TO zcl_axage_thing
                 engine             TYPE REF TO zcl_axage_engine
@@ -45,6 +46,7 @@ CLASS ZCL_AXAGE_OPENABLE_THING IMPLEMENTATION.
       name  = name
       descr = descr
       state = state
+      prefix = prefix
          can_be_pickup = can_be_pickup
          can_be_drop = can_be_drop
          can_weld = can_weld
@@ -55,6 +57,13 @@ CLASS ZCL_AXAGE_OPENABLE_THING IMPLEMENTATION.
          engine = engine ).
     me->needed = needed.
     me->content = content.
+  ENDMETHOD.
+
+
+  METHOD details.
+    IF needed->get_list( ) IS INITIAL AND location->dark EQ abap_false.
+       me->opened = abap_true.
+    ENDIF.
   ENDMETHOD.
 
 
@@ -89,11 +98,4 @@ CLASS ZCL_AXAGE_OPENABLE_THING IMPLEMENTATION.
 
     opened = me->opened.
   ENDMETHOD.
-
-  METHOD details.
-    IF needed->get_list( ) IS INITIAL AND location->dark EQ abap_false.
-       me->opened = abap_true.
-    ENDIF.
-  ENDMETHOD.
-
 ENDCLASS.

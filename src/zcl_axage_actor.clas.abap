@@ -32,13 +32,15 @@ ENDCLASS.
 
 
 CLASS ZCL_AXAGE_ACTOR IMPLEMENTATION.
+
+
   METHOD add_sentences.
     my_sentences = sentences.
   ENDMETHOD.
 
 
   METHOD constructor.
-    super->constructor( type = c_type_actor engine = engine name = name state = state descr = descr ).
+    super->constructor( type = c_type_actor engine = engine name = name state = state descr = descr prefix = prefix ).
     nameUpperCase = to_upper( me->name ).
   ENDMETHOD.
 
