@@ -4,7 +4,26 @@ CLASS zcl_axage_result DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
+    TYPES:
+      BEGIN OF ty_msg,
+        type        TYPE string,
+        title       TYPE string,
+        subtitle    TYPE string,
+        description TYPE string,
+        group       TYPE string,
+      END OF ty_msg.
+      TYPES tt_msg TYPE STANDARD TABLE OF ty_msg WITH EMPTY KEY.
+      DATA t_msg TYPE tt_msg.
+
     METHODS reset.
+
+    METHODS add_msg
+      IMPORTING
+        type        TYPE string
+        title       TYPE string
+        subtitle    TYPE string
+        description TYPE string
+        group       TYPE string.
 
     METHODS add
       IMPORTING
@@ -27,6 +46,12 @@ CLASS zcl_axage_result DEFINITION
         VALUE(textString) TYPE string.
 
   PROTECTED SECTION.
+*   t_msg = VALUE #(
+*          ( description = 'descr' subtitle = 'subtitle' title = 'title' type = 'Error'     group = 'group 01' )
+*          ( description = 'descr' subtitle = 'subtitle' title = 'title' type = 'Information' group = 'group 01' )
+*          ( description = 'descr' subtitle = 'subtitle' title = 'title' type = 'Information' group = 'group 02' )
+*          ( description = 'descr' subtitle = 'subtitle' title = 'title' type = 'Success' group = 'group 03' ) ).
+
     DATA text TYPE string_table.
   PRIVATE SECTION.
 ENDCLASS.
@@ -35,6 +60,14 @@ ENDCLASS.
 
 CLASS ZCL_AXAGE_RESULT IMPLEMENTATION.
 
+
+  METHOD add_msg.
+    APPEND VALUE #( type = type
+                    title = title
+                    subtitle = subtitle
+                    description = description
+                    group = group ) TO me->t_msg.
+  ENDMETHOD.
 
   METHOD add.
     APPEND text TO me->text.

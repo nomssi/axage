@@ -2,10 +2,10 @@ INTERFACE zif_axage_openable
   PUBLIC.
 
   METHODS get_content
-    RETURNING VALUE(content) TYPE REF TO zcl_axage_thing_list.
+    RETURNING VALUE(content) TYPE REF TO zcl_axage_thing.
 
   METHODS open
-    IMPORTING things        TYPE REF TO zcl_axage_thing_list
+    IMPORTING things        TYPE REF TO zcl_axage_thing
     RETURNING VALUE(result) TYPE REF TO zcl_axage_result.
 
   METHODS is_open

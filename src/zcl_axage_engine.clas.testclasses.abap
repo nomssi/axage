@@ -17,8 +17,8 @@ CLASS ltcl_engine IMPLEMENTATION.
   METHOD map_simple.
 
     "floor plan configuration
-    DATA(room_left) = NEW zcl_axage_room( name = 'LEFT' descr = 'Left room' ).
-    DATA(room_right) = NEW zcl_axage_room( name = 'RIGHT' descr = 'Right room' ).
+    DATA(room_left) = cut->new_room( name = 'LEFT' descr = 'Left room' ).
+    DATA(room_right) = cut->new_room( name = 'RIGHT' descr = 'Right room' ).
     room_left->set_exits( e = room_right ).
     room_right->set_exits( w = room_left ).
     cut->map->add_room( room_left ).
@@ -38,28 +38,33 @@ CLASS ltcl_engine IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD setup.
-    cut = NEW #( ).
+    DATA(repo) = NEW zcl_axage_repository( ).
+    cut = NEW #( repo ).
   ENDMETHOD.
 
   METHOD take_and_drop.
     "floor plan configuration
-    DATA(room_left) = NEW zcl_axage_room( name = 'LEFT' descr = 'Left room' ).
-    DATA(room_right) = NEW zcl_axage_room( name = 'RIGHT' descr = 'Right room' ).
+    DATA(room_left) = cut->new_room( name = 'LEFT' descr = 'Left room' ).
+    DATA(room_right) = cut->new_room( name = 'RIGHT' descr = 'Right room' ).
     room_left->set_exits( e = room_right ).
-    DATA(bottle) = NEW zcl_axage_thing( name = 'BOTTLE' state = 'an empty bottle' descr = 'whiskey' ).
-    room_left->things->add( bottle ).
+    DATA(bottle) = cut->new_object( name = 'BOTTLE' state = 'an empty bottle' descr = 'whiskey' ).
+    room_left->add( bottle ).
     room_right->set_exits( w = room_left ).
     cut->map->add_room( room_left ).
     cut->map->add_room( room_right ).
 
-    cut->player->set_location( room_left ).
+    cl_abap_unit_assert=>assert_false(
+      act = room_right->exists( 'BOTTLE' )
+      msg = 'TAKE and DROP Initial state Error' ).
 
+    cut->player->set_location( room_left ).
     cut->interprete( 'TAKE BOTTLE' ).
     cut->interprete( 'e' ).
     cut->interprete( 'DROP BOTTLE' ).
-    cl_abap_unit_assert=>assert_equals(
-      act = room_right->things->get_list( )
-      exp = VALUE zcl_axage_thing_list=>_things( (  bottle ) ) ).
+
+    cl_abap_unit_assert=>assert_true(
+      act = room_right->exists( 'BOTTLE' )
+      msg = 'TAKE and DROP error' ).
 
   ENDMETHOD.
 

@@ -3,9 +3,9 @@
  <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
   <asx:values>
    <VSEOCLASS>
-    <CLSNAME>ZCL_AXAGE_THING_LIST</CLSNAME>
+    <CLSNAME>ZCL_AXAGE_REPOSITORY</CLSNAME>
     <LANGU>E</LANGU>
-    <DESCRIPT>ABAP Game Engine Thing List</DESCRIPT>
+    <DESCRIPT>ABAP Game Engine Thing</DESCRIPT>
     <STATE>1</STATE>
     <CLSCCINCL>X</CLSCCINCL>
     <FIXPT>X</FIXPT>

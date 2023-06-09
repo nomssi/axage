@@ -12,27 +12,25 @@ CLASS lcl_action DEFINITION ABSTRACT.
     ALIASES execute FOR lif_axage_command~execute.
     METHODS constructor IMPORTING objects TYPE string_table
                                   player  TYPE REF TO zcl_axage_actor
-                                  actors  TYPE REF TO zcl_axage_thing_list
+                                  actor_node  TYPE REF TO zcl_axage_thing
+                                  engine TYPE REF TO zcl_axage_engine
                                   !result TYPE REF TO zcl_axage_result.
 
   PROTECTED SECTION.
-    TYPES tt_thing_list TYPE STANDARD TABLE OF REF TO zcl_axage_thing_list WITH EMPTY KEY.
     DATA objects TYPE string_table.
     DATA player TYPE REF TO zcl_axage_actor.
-    DATA actors TYPE REF TO zcl_axage_thing_list.
+    DATA actor_node TYPE REF TO zcl_axage_thing.
     DATA result  TYPE REF TO zcl_axage_result.
+    DATA engine TYPE REF TO zcl_axage_engine.
 
     DATA param1 TYPE string.
-    DATA owned_things TYPE REF TO zcl_axage_thing_list.
-    DATA available_things TYPE REF TO zcl_axage_thing_list.
+    DATA owned_things TYPE zcl_axage_thing=>tt_index.
+    DATA available_things TYPE zcl_axage_thing=>tt_index.
+    DATA repository TYPE REF TO zcl_axage_repository.
 
-    METHODS validate1 IMPORTING operation    TYPE string
-                                it_from      TYPE tt_thing_list
-                      EXPORTING eo_item      TYPE REF TO zcl_axage_thing
-                      RETURNING VALUE(valid) TYPE abap_bool.
     METHODS validate IMPORTING into_object  TYPE string
                                operation    TYPE string
-                               it_from      TYPE tt_thing_list
+                               it_from      TYPE zcl_axage_thing=>tt_index
                      EXPORTING eo_item      TYPE REF TO zcl_axage_thing
                      RETURNING VALUE(valid) TYPE abap_bool.
 
@@ -43,19 +41,14 @@ CLASS lcl_action IMPLEMENTATION.
   METHOD constructor.
     me->objects = objects.
     me->player = player.
-    me->actors = actors.
+    me->actor_node = actor_node.
     me->result = result.
+    me->engine = engine.
 
-    owned_things = player->things.
-    available_things = player->location->things.
+    owned_things = player->index_list.
+    available_things = player->location->index_list.
+    repository = engine->repository.
     param1 = VALUE #( objects[ 1 ] OPTIONAL ).
-  ENDMETHOD.
-
-  METHOD validate1.
-    valid = validate( EXPORTING into_object = param1
-                                operation = operation
-                                it_from = it_from
-                      IMPORTING eo_item = eo_item ).
   ENDMETHOD.
 
   METHOD validate.
@@ -65,10 +58,16 @@ CLASS lcl_action IMPLEMENTATION.
     CLEAR eo_item.
     IF param1 IS INITIAL.
       result->insert( |{ operation } what?| ).
+      result->add_msg( type = 'error'
+                       title = |{ operation } { param1 } { into_object }|
+                       subtitle = operation
+                       description = |{ operation } what?|
+                       group = '' ).
     ELSE.
-      LOOP AT it_from INTO DATA(from).
-        IF from->exists( into_object ).
-          eo_item = from->get( into_object ).         " variable is used dynamically
+      LOOP AT it_from INTO DATA(from_idx).
+        DATA(from) = repository->at_index( from_idx ).
+        IF from IS BOUND AND from->name = into_object.
+          eo_item = from.
           EXIT.
         ENDIF.
       ENDLOOP.
@@ -78,13 +77,28 @@ CLASS lcl_action IMPLEMENTATION.
         ASSIGN (attribute) TO <flag>.
         IF sy-subrc = 0 AND <flag> = abap_false.
           result->add( |{ operation } is not allowed for a { into_object }| ).
+          result->add_msg( type = 'Error'
+                           title = |{ operation } { param1 } { into_object }|
+                           subtitle = operation
+                           description = |{ operation } is not allowed for a { into_object }|
+                           group = '' ).
         ELSE.
           valid = abap_true.
         ENDIF.
       ELSEIF from->get_list( ) IS INITIAL.
         result->add( |You have nothing to { operation }...| ).
+        result->add_msg( type = 'Error'
+                         title = |{ operation } { param1 } { into_object }|
+                         subtitle = operation
+                         description = |You have nothing to { operation }...|
+                         group = '' ).
       ELSE.
         result->add( |There is no { into_object } you can { operation }| ).
+        result->add_msg( type = 'Error'
+                         title = |{ operation } { param1 } { into_object }|
+                         subtitle = operation
+                         description = |There is no { into_object } you can { operation }|
+                         group = '' ).
       ENDIF.
     ENDIF.
   ENDMETHOD.
@@ -99,12 +113,20 @@ ENDCLASS.
 CLASS lcl_drop IMPLEMENTATION.
 
   METHOD execute.
-    IF validate1( it_from = VALUE #( ( owned_things ) )
-                  operation = 'drop' ).
-      DATA(item) = owned_things->get( param1 ).
-      owned_things->delete( param1 ).
-      available_things->add( item ).
+    DATA item TYPE REF TO zcl_axage_thing.
+
+    IF validate( EXPORTING into_object = param1
+                           operation = 'drop'
+                           it_from = owned_things
+                 IMPORTING eo_item = item ).
+      player->delete_by_name( param1 ).
+      player->location->add( item ).
       result->add( |You dropped the { param1 }| ).
+      result->add_msg( type = 'Success'
+                       title = |drop { param1 }|
+                       subtitle = 'drop'
+                       description = |You dropped the { param1 }|
+                       group = '' ).
     ENDIF.
   ENDMETHOD.
 
@@ -117,13 +139,20 @@ ENDCLASS.
 
 CLASS lcl_pickup IMPLEMENTATION.
   METHOD execute.
+    DATA item TYPE REF TO zcl_axage_thing.
     LOOP AT objects INTO param1.
-      IF validate1( it_from = VALUE #( ( available_things ) )
-                    operation = 'pickup' ).
-        DATA(item) = available_things->get( param1 ).
-        owned_things->add( item ).
-        available_things->delete( param1 ).
+      IF validate( EXPORTING into_object = param1
+                             operation = 'pickup'
+                             it_from = available_things
+                   IMPORTING eo_item = item ).
+        player->add( item ).
+        player->location->delete_by_name( param1 ).
         result->add( |You picked the { param1 } up| ).
+        result->add_msg( type = 'Success'
+                         title = |pickup { param1 }|
+                         subtitle = 'pickup'
+                         description = |You picked the { param1 } up|
+                         group = '' ).
       ENDIF.
     ENDLOOP.
   ENDMETHOD.
@@ -148,7 +177,7 @@ CLASS lcl_open IMPLEMENTATION.
     ENDIF.
     done = abap_true.
     DATA(container) = CAST zif_axage_openable( box ).
-    log->add( container->open( player->things )->get( ) ).
+    log->add( container->open( player )->get( ) ).   " Open = move all to
     IF container->is_open( ).
 
       DATA finds TYPE string_table.
@@ -158,7 +187,7 @@ CLASS lcl_open IMPLEMENTATION.
       log->add( |The { box->name } contains:| ).
       log->addtab( finds ).
 
-      player->things->add( content ).
+      player->add( content ).
     ENDIF.
   ENDMETHOD.
 
@@ -167,8 +196,8 @@ CLASS lcl_open IMPLEMENTATION.
 
     IF validate( EXPORTING into_object = param1
                            operation = 'open'
-                           it_from = VALUE #( ( owned_things )
-                                              ( available_things )  )
+                           it_from = zcl_axage_thing=>merge_index( VALUE #( ( owned_things )
+                                                                            ( available_things ) ) )
                  IMPORTING eo_item = item ).
       IF item IS NOT BOUND.
         result->add( |There is no { param1 } to open| ).
@@ -187,41 +216,44 @@ CLASS lcl_ask DEFINITION INHERITING FROM lcl_action.
 
     METHODS execute REDEFINITION.
 
-    METHODS filter_actors IMPORTING things           TYPE REF TO zcl_axage_thing_list
-                                    room             TYPE REF TO zcl_axage_room
+    METHODS filter_actors IMPORTING actor_node TYPE REF TO zcl_axage_thing
+                                    location TYPE REF TO zcl_axage_room
                           RETURNING VALUE(rt_actors) TYPE list_of_actors.
 ENDCLASS.
 
 CLASS lcl_ask IMPLEMENTATION.
 
   METHOD filter_actors.
-    LOOP AT things->get_list( ) INTO DATA(thing) WHERE table_line IS INSTANCE OF zcl_axage_actor.
+    LOOP AT actor_node->get_list( ) INTO DATA(thing)
+      WHERE table_line IS INSTANCE OF zcl_axage_actor.
       DATA(actor) = CAST zcl_axage_actor( thing ).
-      IF actor->get_location( ) = room.
+      IF actor->get_location( )->name = location->name.
         APPEND actor TO rt_actors.
       ENDIF.
     ENDLOOP.
   ENDMETHOD.
 
   METHOD execute.
-    CHECK validate1( it_from = VALUE #( ( owned_things ) )
-                     operation = 'ask' ).
+    CHECK validate( EXPORTING into_object = param1
+                              operation = 'ask'
+                              it_from = owned_things ).
 
     DATA(name) = param1.
-    DATA(actors_in_the_room) = filter_actors( room = player->location
-                                              things = actors ).
+    DATA(actors_in_the_room) = filter_actors( location = player->location
+                                              actor_node = actor_node ).
 
-    IF actors_in_the_room IS INITIAL.
+    IF lines( actors_in_the_room ) = 0.
       result->add( 'There is no one here to ask...' ).
     ELSE.
       IF name IS INITIAL.
         result->add( 'Whom do you want to ask?' ).
       ELSE.
-        LOOP AT actors_in_the_room INTO DATA(actor) WHERE table_line->nameuppercase = name.
+        LOOP AT actors_in_the_room INTO DATA(actor)
+          WHERE table_line->nameuppercase = name.
           result->addtab( actor->speak( ) ).
         ENDLOOP.
         IF sy-subrc NE 0.
-          result->add( |You cannot ask { name }| ).
+          result->add( |{ name } is not here| ).
         ENDIF.
       ENDIF.
     ENDIF.
@@ -236,26 +268,29 @@ ENDCLASS.
 CLASS lcl_weld IMPLEMENTATION.
   METHOD execute.
     DATA(object2) = VALUE #( objects[ 2 ] OPTIONAL ).
-    IF validate1( operation = 'weld'
-                  it_from = VALUE #( ( owned_things ) ) ).
+
+    IF validate( EXPORTING into_object = param1
+                           operation = 'weld'
+                           it_from = owned_things ).
       IF validate( into_object = object2
-                   it_from = VALUE #( ( owned_things ) )
+                   it_from = owned_things
                    operation = 'weld into' ).
-        DATA(available_things) = player->location->things.
+        DATA(location) = player->location.
 
         " can_weld_at_this_location ?
-        LOOP AT player->location->things->get_list( ) INTO DATA(thing) WHERE table_line->can_weld = abap_true.
-
+        LOOP AT location->get_list( ) INTO DATA(thing)
+           WHERE table_line->can_weld = abap_true.
 
           result->add( |You have welded {  param1 } to {  object2 }| ).
           DATA(new_object_name) = |{ param1 }+{  object2 }|.
+          DATA(new_object) = zcl_axage_thing=>new( name = new_object_name descr = 'welded' engine = engine ).
 
           " Add new object object1+object2
-          owned_things->add( available_things->get( new_object_name ) ).
+          player->add( new_object ).
 
           " Remove 2 objects
-          owned_things->delete( param1 ).
-          owned_things->delete( object2 ).
+          player->delete_by_name( param1 ).
+          player->delete_by_name( object2 ).
 
           RETURN.
         ENDLOOP..
@@ -280,7 +315,7 @@ CLASS lcl_splash IMPLEMENTATION.
 
     DATA(splash_subject) = param1.
     DATA(splash_object) = VALUE #( objects[ 2 ] OPTIONAL ).
-    DATA(things_at_location) = VALUE tt_thing_list( ( owned_things ) ( available_things ) ).
+    DATA(things_at_location) = zcl_axage_thing=>merge_index( VALUE #( ( owned_things ) ( available_things ) ) ).
 
     IF validate( EXPORTING into_object = splash_subject
                            it_from = things_at_location
@@ -314,7 +349,7 @@ CLASS lcl_dunk IMPLEMENTATION.
 
     DATA(dunk_subject) = param1.
     DATA(dunk_object) = VALUE #( objects[ 2 ] OPTIONAL ).
-    DATA(things_at_location) = VALUE tt_thing_list( ( owned_things ) ( available_things ) ).
+    DATA(things_at_location) = zcl_axage_thing=>merge_index( VALUE #( ( owned_things ) ( available_things ) ) ).
 
     IF validate( EXPORTING into_object = dunk_subject
                            it_from = things_at_location
@@ -359,7 +394,7 @@ CLASS lcl_cast IMPLEMENTATION.
 
     IF validate( EXPORTING into_object = param1
                            operation = 'cast'
-                           it_from = VALUE #( ( owned_things ) )
+                           it_from = owned_things
                  IMPORTING eo_item = lo_item ).
       IF lo_item IS BOUND.
         player->location->dark = abap_false.

@@ -1,9 +1,25 @@
 CLASS zcl_axage_thing DEFINITION
   PUBLIC
-  CREATE PUBLIC .
+  CREATE PROTECTED GLOBAL FRIENDS zcl_axage_engine.
 
   PUBLIC SECTION.
+    TYPES tv_type TYPE c LENGTH 6.
+    TYPES tv_index TYPE i.
+    TYPES tt_things TYPE STANDARD TABLE OF REF TO zcl_axage_thing WITH EMPTY KEY.
+    TYPES tt_index TYPE SORTED TABLE OF tv_index WITH UNIQUE DEFAULT KEY.
+    TYPES tt_index_list TYPE STANDARD TABLE OF tt_index.
+
+    CONSTANTS c_type_node TYPE tv_type VALUE 'node'.
+
+    CONSTANTS c_type_thing TYPE tv_type VALUE 'thing'.
+    CONSTANTS c_type_actor TYPE tv_type VALUE 'actor'.
+    CONSTANTS c_type_room TYPE tv_type VALUE 'room'.
+    CONSTANTS c_type_no_exit TYPE tv_type VALUE 'noexit'.
+
     INTERFACES if_serializable_object.
+
+    DATA index TYPE tv_index.
+
     DATA name TYPE string.
     DATA description TYPE string.
     DATA state TYPE string.
@@ -16,8 +32,36 @@ CLASS zcl_axage_thing DEFINITION
     DATA can_be_splash_into TYPE abap_bool READ-ONLY.
     DATA can_be_dunk_into TYPE abap_bool READ-ONLY.
 
+    DATA repository TYPE REF TO zcl_axage_repository READ-ONLY.
+    DATA index_list TYPE tt_index.
+
+    CLASS-METHODS create_node
+      IMPORTING
+        name  TYPE clike
+        descr TYPE clike OPTIONAL
+        engine TYPE REF TO zcl_axage_engine
+      RETURNING VALUE(ro_thing) TYPE REF TO zcl_axage_thing.
+
+    CLASS-METHODS new
+      IMPORTING
+        type TYPE tv_type DEFAULT c_type_thing
+        engine TYPE REF TO zcl_axage_engine
+        name  TYPE clike
+        descr TYPE clike
+        state TYPE clike OPTIONAL
+         can_be_pickup TYPE abap_bool DEFAULT abap_true
+         can_be_drop TYPE abap_bool DEFAULT  abap_true
+         can_weld TYPE abap_bool DEFAULT abap_false
+         can_be_weld TYPE abap_bool DEFAULT abap_false
+         can_be_open TYPE abap_bool DEFAULT abap_false
+         can_be_splash_into TYPE abap_bool DEFAULT abap_false
+         can_be_dunk_into TYPE abap_bool DEFAULT abap_false
+      RETURNING VALUE(ro_thing) TYPE REF TO zcl_axage_thing.
+
     METHODS constructor
       IMPORTING
+        type TYPE tv_type DEFAULT c_type_thing
+        engine TYPE REF TO zcl_axage_engine
         name  TYPE clike
         descr TYPE clike
         state TYPE clike
@@ -27,13 +71,50 @@ CLASS zcl_axage_thing DEFINITION
          can_be_weld TYPE abap_bool DEFAULT abap_false
          can_be_open TYPE abap_bool DEFAULT abap_false
          can_be_splash_into TYPE abap_bool DEFAULT abap_false
-         can_be_dunk_into TYPE abap_bool DEFAULT abap_false.
+         can_be_dunk_into TYPE abap_bool DEFAULT abap_false
+         first TYPE tv_index DEFAULT 1
+         rest TYPE tv_index DEFAULT 1.
 
     METHODS to_text RETURNING VALUE(text) TYPE string.
     METHODS describe RETURNING VALUE(text) TYPE string.
 
-  PROTECTED SECTION.
+    METHODS get_list
+      IMPORTING include_nodes TYPE abap_bool DEFAULT abap_false
+      RETURNING VALUE(things) TYPE tt_things.
 
+    METHODS get_by_name
+      IMPORTING !name        TYPE clike
+      RETURNING VALUE(thing) TYPE REF TO zcl_axage_thing.
+
+    METHODS at_index
+      IMPORTING index        TYPE tv_index
+      RETURNING VALUE(thing) TYPE REF TO zcl_axage_thing.
+
+    CLASS-METHODS merge_index IMPORTING it_list TYPE tt_index_list
+                              RETURNING VALUE(rt_list) TYPE tt_index.
+    METHODS get_by_index
+      IMPORTING index        TYPE tv_index
+      RETURNING VALUE(thing) TYPE REF TO zcl_axage_thing.
+
+    METHODS show
+      RETURNING VALUE(result) TYPE string_table.
+
+    METHODS add
+      IMPORTING thing         TYPE REF TO zcl_axage_thing
+      RETURNING VALUE(result) TYPE tv_index.
+
+    METHODS delete_by_name
+      IMPORTING !name TYPE clike.
+
+    METHODS delete_by_index
+      IMPORTING index TYPE tv_index.
+
+    METHODS exists
+      IMPORTING !name         TYPE clike
+      RETURNING VALUE(exists) TYPE abap_bool.
+
+  PROTECTED SECTION.
+    DATA type TYPE tv_type.
   PRIVATE SECTION.
 ENDCLASS.
 
@@ -41,8 +122,17 @@ ENDCLASS.
 
 CLASS ZCL_AXAGE_THING IMPLEMENTATION.
 
+  METHOD add.
+    INSERT thing->index INTO TABLE index_list.
+  ENDMETHOD.
+
+  METHOD at_index.
+    thing = repository->at_index( index ).
+  ENDMETHOD.
+
 
   METHOD constructor.
+    me->type = type.
     me->name = name.
     me->description = descr.
     me->state = state.
@@ -55,8 +145,35 @@ CLASS ZCL_AXAGE_THING IMPLEMENTATION.
     me->can_be_open = can_be_open.
     me->can_be_splash_into = can_be_splash_into.
     me->can_be_dunk_into = can_be_dunk_into.
+    me->repository = engine->repository.
+
+    me->index = repository->add( me ).
+  ENDMETHOD.
 
 
+  METHOD create_node.
+    ro_thing = new( type = c_type_node
+                    name = name
+                    descr = descr
+                    engine = engine ).
+  ENDMETHOD.
+
+
+  METHOD delete_by_index.
+    IF line_exists( index_list[ index ] ).
+      DELETE index_list WHERE table_line = index.
+    ENDIF.
+  ENDMETHOD.
+
+
+  METHOD delete_by_name.
+    DATA(name_uppercase) = to_upper( name ).
+    LOOP AT repository->all_things INTO DATA(thing) WHERE table_line->name = name_uppercase.
+      IF line_exists( index_list[ thing->index ] ).
+        DELETE index_list WHERE table_line = thing->index.
+        RETURN.
+      ENDIF.
+    ENDLOOP.
   ENDMETHOD.
 
 
@@ -65,6 +182,82 @@ CLASS ZCL_AXAGE_THING IMPLEMENTATION.
     IF state IS NOT INITIAL.
       text = text && |, { state }|.
     ENDIF.
+  ENDMETHOD.
+
+
+  METHOD exists.
+    exists = abap_false.
+    DATA(name_uppercase) = to_upper( name ).
+    LOOP AT repository->all_things INTO DATA(thing) WHERE table_line->name = name_uppercase.
+      IF line_exists( index_list[ thing->index ] ).
+        exists = abap_true.
+        RETURN.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
+
+  METHOD get_by_index.
+    IF line_exists( index_list[ table_line = index ] ).
+      thing = VALUE #( repository->all_things[ index ] OPTIONAL ).
+    ENDIF.
+  ENDMETHOD.
+
+
+  METHOD get_by_name.
+    DATA(name_uppercase) = to_upper( name ).
+    LOOP AT repository->all_things INTO thing WHERE table_line->name = name_uppercase.
+      IF line_exists( index_list[ thing->index ] ).
+        RETURN.
+      ENDIF.
+    ENDLOOP.
+    CLEAR thing.
+  ENDMETHOD.
+
+
+  METHOD GET_LIST.
+    LOOP AT index_list into DATA(idx).
+      DATA(thing) = repository->all_things[ idx ].
+      IF include_nodes = abap_true OR thing->type <> c_type_node.
+        APPEND thing TO things.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
+
+  METHOD merge_index.
+    rt_list = VALUE #( it_list[ 1 ] OPTIONAL ).
+    LOOP AT it_list INTO DATA(list) FROM 2.
+      LOOP AT list INTO DATA(idx).
+        INSERT idx INTO TABLE rt_list.
+      ENDLOOP.
+    ENDLOOP.
+  ENDMETHOD.
+
+
+  METHOD new.
+    ro_thing = NEW ZCL_AXAGE_THING(
+                       type = type
+                       engine = engine
+                       name = name
+                       descr = descr
+                       state = state
+
+                       can_be_pickup = can_be_pickup
+                       can_be_drop = can_be_drop
+                       can_be_weld = can_be_weld
+                       can_be_open = can_be_open
+                       can_be_splash_into = can_be_splash_into
+                       can_be_dunk_into = can_be_dunk_into ).
+  ENDMETHOD.
+
+
+  METHOD show.
+    LOOP AT index_list into DATA(idx).
+      DATA(thing) = repository->all_things[ idx ].
+      CHECK thing->type <> c_type_node.
+      APPEND thing->describe( ) TO result.
+    ENDLOOP.
   ENDMETHOD.
 
 

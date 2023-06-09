@@ -15,8 +15,9 @@ CLASS zcl_axage_openable_thing DEFINITION
         name  TYPE clike
         descr TYPE clike
         state TYPE clike OPTIONAL
-        needed  TYPE REF TO zcl_axage_thing_list
-        content TYPE REF TO zcl_axage_thing_list
+        needed  TYPE REF TO zcl_axage_thing
+        content TYPE REF TO zcl_axage_thing
+        engine TYPE REF TO zcl_axage_engine
          can_be_pickup TYPE abap_bool DEFAULT abap_true
          can_be_drop TYPE abap_bool DEFAULT  abap_true
          can_weld TYPE abap_bool DEFAULT abap_false
@@ -25,10 +26,10 @@ CLASS zcl_axage_openable_thing DEFINITION
          can_be_splash_into TYPE abap_bool DEFAULT abap_false
          can_be_dunk_into TYPE abap_bool DEFAULT abap_false.
 
-    DATA needed TYPE REF TO zcl_axage_thing_list.
+    DATA needed TYPE REF TO zcl_axage_thing.
   PROTECTED SECTION.
     DATA opened TYPE abap_bool.
-    DATA content TYPE REF TO zcl_axage_thing_list.
+    DATA content TYPE REF TO zcl_axage_thing.
   PRIVATE SECTION.
 ENDCLASS.
 
@@ -48,7 +49,8 @@ CLASS ZCL_AXAGE_OPENABLE_THING IMPLEMENTATION.
          can_be_weld = can_be_weld
          can_be_open = can_be_open
          can_be_splash_into = can_be_splash_into
-         can_be_dunk_into = can_be_dunk_into ).
+         can_be_dunk_into = can_be_dunk_into
+         engine = engine ).
     me->needed = needed.
     me->content = content.
   ENDMETHOD.
