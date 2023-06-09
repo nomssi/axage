@@ -2,31 +2,33 @@ CLASS zcl_axage_openable_thing DEFINITION
   INHERITING FROM zcl_axage_thing
   PUBLIC
   FINAL
-  CREATE PUBLIC .
+  CREATE PUBLIC.
 
   PUBLIC SECTION.
     INTERFACES zif_axage_openable.
-    ALIASES: open FOR zif_axage_openable~open,
-             get_content FOR zif_axage_openable~get_content,
-             is_open FOR zif_axage_openable~is_open.
+
+    ALIASES open        FOR zif_axage_openable~open.
+    ALIASES details     FOR zif_axage_openable~details.
+    ALIASES get_content FOR zif_axage_openable~get_content.
+    ALIASES is_open     FOR zif_axage_openable~is_open.
 
     METHODS constructor
-      IMPORTING
-        name  TYPE clike
-        descr TYPE clike
-        state TYPE clike OPTIONAL
-        needed  TYPE REF TO zcl_axage_thing
-        content TYPE REF TO zcl_axage_thing
-        engine TYPE REF TO zcl_axage_engine
-         can_be_pickup TYPE abap_bool DEFAULT abap_true
-         can_be_drop TYPE abap_bool DEFAULT  abap_true
-         can_weld TYPE abap_bool DEFAULT abap_false
-         can_be_weld TYPE abap_bool DEFAULT abap_false
-         can_be_open TYPE abap_bool DEFAULT abap_false
-         can_be_splash_into TYPE abap_bool DEFAULT abap_false
-         can_be_dunk_into TYPE abap_bool DEFAULT abap_false.
+      IMPORTING !name              TYPE clike
+                descr              TYPE clike
+                !state             TYPE clike     OPTIONAL
+                needed             TYPE REF TO zcl_axage_thing
+                content            TYPE REF TO zcl_axage_thing
+                engine             TYPE REF TO zcl_axage_engine
+                can_be_pickup      TYPE abap_bool DEFAULT abap_true
+                can_be_drop        TYPE abap_bool DEFAULT  abap_true
+                can_weld           TYPE abap_bool DEFAULT abap_false
+                can_be_weld        TYPE abap_bool DEFAULT abap_false
+                can_be_open        TYPE abap_bool DEFAULT abap_false
+                can_be_splash_into TYPE abap_bool DEFAULT abap_false
+                can_be_dunk_into   TYPE abap_bool DEFAULT abap_false.
 
     DATA needed TYPE REF TO zcl_axage_thing.
+
   PROTECTED SECTION.
     DATA opened TYPE abap_bool.
     DATA content TYPE REF TO zcl_axage_thing.
@@ -87,4 +89,11 @@ CLASS ZCL_AXAGE_OPENABLE_THING IMPLEMENTATION.
 
     opened = me->opened.
   ENDMETHOD.
+
+  METHOD details.
+    IF needed->get_list( ) IS INITIAL AND location->dark EQ abap_false.
+       me->opened = abap_true.
+    ENDIF.
+  ENDMETHOD.
+
 ENDCLASS.

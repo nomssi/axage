@@ -44,13 +44,11 @@ ENDCLASS.
 
 
 CLASS ZCL_AXAGE_ROOM IMPLEMENTATION.
-
-
   METHOD constructor.
     super->constructor( type = c_type_room name = name state = state descr = descr engine = engine ).
-    me->dark = dark.
+    me->dark       = dark.
     me->image_data = image_data.
-    me->no_exit = engine->no_exit.
+    no_exit = engine->no_exit.
   ENDMETHOD.
 
 

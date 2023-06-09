@@ -32,8 +32,6 @@ ENDCLASS.
 
 
 CLASS ZCL_AXAGE_ACTOR IMPLEMENTATION.
-
-
   METHOD add_sentences.
     my_sentences = sentences.
   ENDMETHOD.

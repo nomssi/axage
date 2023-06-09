@@ -9,6 +9,7 @@ CLASS zcl_axage_thing DEFINITION
     TYPES tt_index TYPE SORTED TABLE OF tv_index WITH UNIQUE DEFAULT KEY.
     TYPES tt_index_list TYPE STANDARD TABLE OF tt_index.
 
+    CONSTANTS c_prefix TYPE string VALUE `a `.
     CONSTANTS c_type_node TYPE tv_type VALUE 'node'.
 
     CONSTANTS c_type_thing TYPE tv_type VALUE 'thing'.
@@ -22,6 +23,7 @@ CLASS zcl_axage_thing DEFINITION
 
     DATA name TYPE string.
     DATA description TYPE string.
+    DATA prefix TYPE string.
     DATA state TYPE string.
 
     DATA can_be_pickup TYPE abap_bool READ-ONLY.
@@ -35,11 +37,13 @@ CLASS zcl_axage_thing DEFINITION
     DATA repository TYPE REF TO zcl_axage_repository READ-ONLY.
     DATA index_list TYPE tt_index.
 
+
     CLASS-METHODS create_node
       IMPORTING
         name  TYPE clike
         descr TYPE clike OPTIONAL
         engine TYPE REF TO zcl_axage_engine
+        prefix TYPE string
       RETURNING VALUE(ro_thing) TYPE REF TO zcl_axage_thing.
 
     CLASS-METHODS new
@@ -49,6 +53,7 @@ CLASS zcl_axage_thing DEFINITION
         name  TYPE clike
         descr TYPE clike
         state TYPE clike OPTIONAL
+        prefix TYPE string DEFAULT c_prefix
          can_be_pickup TYPE abap_bool DEFAULT abap_true
          can_be_drop TYPE abap_bool DEFAULT  abap_true
          can_weld TYPE abap_bool DEFAULT abap_false
@@ -65,6 +70,7 @@ CLASS zcl_axage_thing DEFINITION
         name  TYPE clike
         descr TYPE clike
         state TYPE clike
+        prefix TYPE string
          can_be_pickup TYPE abap_bool DEFAULT abap_true
          can_be_drop TYPE abap_bool DEFAULT  abap_true
          can_weld TYPE abap_bool DEFAULT abap_false
@@ -130,24 +136,24 @@ CLASS ZCL_AXAGE_THING IMPLEMENTATION.
     thing = repository->at_index( index ).
   ENDMETHOD.
 
-
   METHOD constructor.
     me->type = type.
     me->name = name.
-    me->description = descr.
-    me->state = state.
+    description = descr.
+    me->state              = state.
+    me->prefix             = prefix.
 
-    me->can_be_pickup = can_be_pickup.
-    me->can_be_drop = can_be_drop.
+    me->can_be_pickup      = can_be_pickup.
+    me->can_be_drop        = can_be_drop.
 
-    me->can_weld = can_weld.
-    me->can_be_weld  = can_be_weld.
-    me->can_be_open = can_be_open.
+    me->can_weld           = can_weld.
+    me->can_be_weld        = can_be_weld.
+    me->can_be_open        = can_be_open.
     me->can_be_splash_into = can_be_splash_into.
-    me->can_be_dunk_into = can_be_dunk_into.
-    me->repository = engine->repository.
+    me->can_be_dunk_into   = can_be_dunk_into.
+    repository = engine->repository.
 
-    me->index = repository->add( me ).
+    index = repository->add( me ).
   ENDMETHOD.
 
 
@@ -155,7 +161,8 @@ CLASS ZCL_AXAGE_THING IMPLEMENTATION.
     ro_thing = new( type = c_type_node
                     name = name
                     descr = descr
-                    engine = engine ).
+                    engine = engine
+                    prefix = prefix ).
   ENDMETHOD.
 
 
@@ -178,7 +185,7 @@ CLASS ZCL_AXAGE_THING IMPLEMENTATION.
 
 
   METHOD describe.
-    text = `a ` && to_text( ).
+    text = prefix && to_text( ).
     IF state IS NOT INITIAL.
       text = text && |, { state }|.
     ENDIF.
@@ -242,6 +249,7 @@ CLASS ZCL_AXAGE_THING IMPLEMENTATION.
                        name = name
                        descr = descr
                        state = state
+                       prefix = prefix
 
                        can_be_pickup = can_be_pickup
                        can_be_drop = can_be_drop

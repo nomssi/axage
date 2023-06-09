@@ -78,25 +78,25 @@ CLASS lcl_action IMPLEMENTATION.
         IF sy-subrc = 0 AND <flag> = abap_false.
           result->add( |{ operation } is not allowed for a { into_object }| ).
           result->add_msg( type = 'Error'
-                           title = |{ operation } { param1 } { into_object }|
-                           subtitle = operation
+                           title = |{ operation } { into_object }|
+                           subtitle = player->location->name
                            description = |{ operation } is not allowed for a { into_object }|
                            group = '' ).
         ELSE.
           valid = abap_true.
         ENDIF.
-      ELSEIF from->get_list( ) IS INITIAL.
+      ELSEIF from IS BOUND AND from->get_list( ) IS INITIAL.
         result->add( |You have nothing to { operation }...| ).
         result->add_msg( type = 'Error'
-                         title = |{ operation } { param1 } { into_object }|
-                         subtitle = operation
+                         title = |{ operation } { into_object }|
+                         subtitle = player->location->name
                          description = |You have nothing to { operation }...|
                          group = '' ).
       ELSE.
         result->add( |There is no { into_object } you can { operation }| ).
         result->add_msg( type = 'Error'
-                         title = |{ operation } { param1 } { into_object }|
-                         subtitle = operation
+                         title = |{ operation } { into_object }|
+                         subtitle = player->location->name
                          description = |There is no { into_object } you can { operation }|
                          group = '' ).
       ENDIF.
@@ -124,7 +124,7 @@ CLASS lcl_drop IMPLEMENTATION.
       result->add( |You dropped the { param1 }| ).
       result->add_msg( type = 'Success'
                        title = |drop { param1 }|
-                       subtitle = 'drop'
+                       subtitle = player->location->name
                        description = |You dropped the { param1 }|
                        group = '' ).
     ENDIF.
@@ -150,7 +150,7 @@ CLASS lcl_pickup IMPLEMENTATION.
         result->add( |You picked the { param1 } up| ).
         result->add_msg( type = 'Success'
                          title = |pickup { param1 }|
-                         subtitle = 'pickup'
+                         subtitle = player->location->name
                          description = |You picked the { param1 } up|
                          group = '' ).
       ENDIF.
@@ -179,6 +179,11 @@ CLASS lcl_open IMPLEMENTATION.
     DATA(container) = CAST zif_axage_openable( box ).
     log->add( container->open( player )->get( ) ).   " Open = move all to
     IF container->is_open( ).
+      log->add_msg( type = 'Success'
+                    title = |open { box->name }|
+                    subtitle = player->location->name
+                    description = |You opened the { box->name } up|
+                    group = '' ).
 
       DATA finds TYPE string_table.
       LOOP AT container->get_content( )->get_list( ) INTO DATA(content).
@@ -283,8 +288,9 @@ CLASS lcl_weld IMPLEMENTATION.
 
           result->add( |You have welded {  param1 } to {  object2 }| ).
           DATA(new_object_name) = |{ param1 }+{  object2 }|.
-          DATA(new_object) = zcl_axage_thing=>new( name = new_object_name descr = 'welded' engine = engine ).
-
+          DATA(new_object) = zcl_axage_thing=>new( name = new_object_name
+                                                   descr = 'welded'
+                                                   engine = engine ).
           " Add new object object1+object2
           player->add( new_object ).
 
@@ -402,6 +408,77 @@ CLASS lcl_cast IMPLEMENTATION.
       ELSE.
         result->add( |You have not learned that spell yet| ).
       ENDIF.
+    ENDIF.
+  ENDMETHOD.
+
+ENDCLASS.
+
+CLASS lcl_look DEFINITION INHERITING FROM lcl_action.
+  PUBLIC SECTION.
+    METHODS execute REDEFINITION.
+    METHODS details IMPORTING !object TYPE REF TO zcl_axage_thing
+                               log    TYPE REF TO zcl_axage_result
+                               location TYPE REF TO zcl_axage_room
+                    RETURNING VALUE(done) TYPE abap_bool.
+ENDCLASS.
+
+CLASS lcl_look IMPLEMENTATION.
+  METHOD execute.
+    DATA item TYPE REF TO zcl_axage_thing.
+    LOOP AT objects INTO param1.
+      IF validate( EXPORTING into_object = param1
+                             operation = 'look'
+                             it_from = available_things
+                   IMPORTING eo_item = item ).
+        result->add( |You look at the { param1 }).| ).
+        result->add( |You see { item->describe( ) }| ).
+        details( log = result
+                 location = player->location
+                 object = item ).
+
+        result->add_msg( type = 'Success'
+                         title = |look at { param1 }|
+                         subtitle = player->location->name
+                         description = |You looked at the { param1 }|
+                         group = '' ).
+      ELSEIF validate( EXPORTING into_object = param1
+                                 operation = 'look'
+                                 it_from = owned_things
+                       IMPORTING eo_item = item ).
+        result->add( |You look at the { param1 } you are carrying.| ).
+        result->add( |You see { item->describe( ) }| ).
+
+        result->add_msg( type = 'Success'
+                         title = |look at { param1 }|
+                         subtitle = player->location->name
+                         description = |You looked at the { param1 } you are carrying|
+                         group = '' ).
+
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD details.
+    done = abap_false.
+    IF NOT object IS INSTANCE OF zif_axage_openable.
+      RETURN.
+    ENDIF.
+    DATA(container) = CAST zif_axage_openable( object ).
+    container->details( location ).
+    IF container->is_open( ).
+      log->add_msg( type = 'Success'
+                    title = |look at { object->name }|
+                    subtitle = location->name
+                    description = |You look at details of { object->name }|
+                    group = '' ).
+
+      DATA finds TYPE string_table.
+      LOOP AT container->get_content( )->get_list( ) INTO DATA(content).
+        APPEND content->describe(  ) TO finds.
+        location->add( content ).
+      ENDLOOP.
+      log->add( |The { object->name } has:| ).
+      log->addtab( finds ).
     ENDIF.
   ENDMETHOD.
 

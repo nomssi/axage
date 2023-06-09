@@ -4,7 +4,9 @@ CLASS zcl_axage_engine DEFINITION
   CREATE PUBLIC.
 
   PUBLIC SECTION.
+
     INTERFACES if_serializable_object.
+
     TYPES: BEGIN OF ts_action,
              action  TYPE string,
              execute TYPE classname,
@@ -14,37 +16,37 @@ CLASS zcl_axage_engine DEFINITION
     METHODS constructor IMPORTING repository TYPE REF TO zcl_axage_repository.
 
     METHODS new_node
-      IMPORTING name            TYPE clike
+      IMPORTING !name           TYPE clike
                 descr           TYPE clike OPTIONAL
       RETURNING VALUE(ro_thing) TYPE REF TO zcl_axage_thing.
 
     METHODS new_object
-      IMPORTING
-                type               TYPE zcl_axage_thing=>tv_type DEFAULT zcl_axage_thing=>c_type_thing
-                name               TYPE clike
+      IMPORTING !type              TYPE zcl_axage_thing=>tv_type DEFAULT zcl_axage_thing=>c_type_thing
+                !name              TYPE clike
                 descr              TYPE clike
-                state              TYPE clike OPTIONAL
-                can_be_pickup      TYPE abap_bool DEFAULT abap_true
-                can_be_drop        TYPE abap_bool DEFAULT  abap_true
-                can_weld           TYPE abap_bool DEFAULT abap_false
-                can_be_weld        TYPE abap_bool DEFAULT abap_false
-                can_be_open        TYPE abap_bool DEFAULT abap_false
-                can_be_splash_into TYPE abap_bool DEFAULT abap_false
-                can_be_dunk_into   TYPE abap_bool DEFAULT abap_false
+                !state             TYPE clike                    OPTIONAL
+                !prefix            TYPE string                   DEFAULT zcl_axage_thing=>c_prefix
+                can_be_pickup      TYPE abap_bool                DEFAULT abap_true
+                can_be_drop        TYPE abap_bool                DEFAULT abap_true
+                can_weld           TYPE abap_bool                DEFAULT abap_false
+                can_be_weld        TYPE abap_bool                DEFAULT abap_false
+                can_be_open        TYPE abap_bool                DEFAULT abap_false
+                can_be_splash_into TYPE abap_bool                DEFAULT abap_false
+                can_be_dunk_into   TYPE abap_bool                DEFAULT abap_false
       RETURNING VALUE(ro_thing)    TYPE REF TO zcl_axage_thing.
 
     METHODS new_room
-      IMPORTING name        TYPE clike
-                descr       TYPE clike OPTIONAL
-                state       TYPE clike OPTIONAL
+      IMPORTING !name       TYPE clike
+                descr       TYPE clike     OPTIONAL
+                !state      TYPE clike     OPTIONAL
                 dark        TYPE abap_bool OPTIONAL
-                image_data  TYPE string OPTIONAL
+                image_data  TYPE string    OPTIONAL
       RETURNING VALUE(room) TYPE REF TO zcl_axage_room.
 
     METHODS new_actor
-      IMPORTING name        TYPE clike
+      IMPORTING !name       TYPE clike
                 descr       TYPE clike
-                state       TYPE clike OPTIONAL
+                !state      TYPE clike OPTIONAL
       RETURNING VALUE(room) TYPE REF TO zcl_axage_actor.
 
     METHODS interprete
@@ -59,38 +61,38 @@ CLASS zcl_axage_engine DEFINITION
       RETURNING VALUE(result) TYPE string.
 
     METHODS get_inventory
-      IMPORTING result TYPE REF TO zcl_axage_result.
+      IMPORTING !result TYPE REF TO zcl_axage_result.
 
     DATA player            TYPE REF TO zcl_axage_actor.
     DATA map               TYPE REF TO zcl_axage_map.
     DATA actor_node        TYPE REF TO zcl_axage_thing.
     DATA repository        TYPE REF TO zcl_axage_repository.
-    DATA no_exit TYPE REF TO zcl_axage_room.
+    DATA no_exit           TYPE REF TO zcl_axage_room.
     DATA mission_completed TYPE abap_bool.
     DATA allowed_commands  TYPE tt_action.
 
   PROTECTED SECTION.
-
     METHODS propose_command
-      IMPORTING token TYPE string
-                percentage TYPE i DEFAULT 70  " 70% similarity
+      IMPORTING token          TYPE string
+                !percentage    TYPE i DEFAULT 70  " 70% similarity
       RETURNING VALUE(variant) TYPE string.
 
     METHODS add_exits
       IMPORTING location TYPE REF TO zcl_axage_room
-                result   TYPE REF TO zcl_axage_result.
+                !result  TYPE REF TO zcl_axage_result.
 
-    METHODS next_room IMPORTING action        TYPE string
+    METHODS next_room IMPORTING !action       TYPE string
                       RETURNING VALUE(target) TYPE REF TO zcl_axage_room.
 
-    METHODS custom_action IMPORTING action          TYPE clike
+    METHODS custom_action IMPORTING !action         TYPE clike
                                     params          TYPE string_table
-                                    result          TYPE REF TO zcl_axage_result
+                                    !result         TYPE REF TO zcl_axage_result
                           RETURNING VALUE(executed) TYPE abap_bool.
 
-    METHODS parse_command IMPORTING command TYPE string
-                          EXPORTING action  TYPE string
-                                    params  TYPE string_table.
+    METHODS parse_command IMPORTING !command TYPE string
+                          EXPORTING !action  TYPE string
+                                    params   TYPE string_table.
+
     METHODS cmd_look
       IMPORTING !result TYPE REF TO zcl_axage_result
                 params  TYPE string_table OPTIONAL.
@@ -105,19 +107,13 @@ CLASS zcl_axage_engine DEFINITION
 
   PRIVATE SECTION.
     METHODS look_around
-      IMPORTING result   TYPE REF TO zcl_axage_result
+      IMPORTING !result  TYPE REF TO zcl_axage_result
                 location TYPE REF TO zcl_axage_room.
 
-    METHODS look_at
-      IMPORTING result      TYPE REF TO zcl_axage_result
-                object_list TYPE string_table OPTIONAL.
 ENDCLASS.
 
 
-
-CLASS ZCL_AXAGE_ENGINE IMPLEMENTATION.
-
-
+CLASS zcl_axage_engine IMPLEMENTATION.
   METHOD add_exits.
     IF location->east->name <> no_exit->name.
       result->add( 'There is a door on the east side' ).
@@ -138,7 +134,6 @@ CLASS ZCL_AXAGE_ENGINE IMPLEMENTATION.
       result->add( 'There is a ladder going downstairs' ).
     ENDIF.
   ENDMETHOD.
-
 
   METHOD add_help.
     result->add( `` ).
@@ -169,9 +164,8 @@ CLASS ZCL_AXAGE_ENGINE IMPLEMENTATION.
     result->add( `` ).
   ENDMETHOD.
 
-
   METHOD cmd_look.
-    IF player->location->dark EQ abap_true.
+    IF player->location->dark = abap_true.
       result->add( 'You cannot see in the dark.' ).
       RETURN.
     ENDIF.
@@ -179,25 +173,27 @@ CLASS ZCL_AXAGE_ENGINE IMPLEMENTATION.
       look_around( location = player->location   " Surroundings
                    result = result ).
     ELSE.
-      look_at( object_list = params              " Object list
-               result = result ).
+      NEW lcl_look( objects = params
+                    player = player
+                    actor_node = actor_node
+                    engine = me
+                    result = result )->execute( ).
     ENDIF.
   ENDMETHOD.
-
 
   METHOD constructor.
     me->repository = repository.
     no_exit = NEW zcl_axage_room( name = 'No Exit'
                                   descr = 'There is no exit in this direction...'
-                                  "dark = abap_false
-                                  "image_data = space
+                                  " dark = abap_false
+                                  " image_data = space
                                   state = space
                                   engine = me ).
-    no_exit->no_exit = me->no_exit. " circular definition. of no_exit->no_exit not critical as the variable should not be used)
+    no_exit->no_exit = no_exit. " circular definition. of no_exit->no_exit not critical as the variable should not be used)
     map = NEW #( no_exit ).
 
     player = new_actor( name = 'PLAYER' descr = 'player name' ).
-    "actors = NEW zcl_axage_actor( name = '' descr = 'AllActors' engine = me ).
+    " actors = NEW zcl_axage_actor( name = '' descr = 'AllActors' engine = me ).
     actor_node = new_node( name = 'AllActors' ).
     allowed_commands = VALUE #( ( action = 'ASK' execute = 'LCL_PICKUP' )
                                 ( action = 'CAST' execute = 'LCL_CAST' )
@@ -216,10 +212,8 @@ CLASS ZCL_AXAGE_ENGINE IMPLEMENTATION.
                                 ( action = 'TAKE' execute = 'LCL_PICKUP' )
                                 ( action = 'UP' )
                                 ( action = 'WELD' execute = 'LCL_WELD' )
-                                ( action = 'WEST' )
-                                 ).
+                                ( action = 'WEST' ) ).
   ENDMETHOD.
-
 
   METHOD custom_action.
     DATA lo_action TYPE REF TO lcl_action.
@@ -227,25 +221,25 @@ CLASS ZCL_AXAGE_ENGINE IMPLEMENTATION.
     executed = abap_false.
     DATA(classname) = VALUE #( allowed_commands[ action = action ]-execute OPTIONAL ).
 
-    IF classname IS NOT INITIAL.
-      TRY.
-          CREATE OBJECT lo_action TYPE (classname)
-            EXPORTING objects = params
-                      player = player
-                      actor_node = actor_node
-                      engine = me
-                      result = result.
-          IF lo_action IS BOUND.
-            lo_action->execute( ).
-            executed = abap_true.
-          ENDIF.
-        CATCH cx_root INTO DATA(lx_error).
-        result->add( lx_error->get_text( ) ).
-      ENDTRY.
-
+    IF classname IS INITIAL.
+      RETURN.
     ENDIF.
-  ENDMETHOD.
 
+    TRY.
+        CREATE OBJECT lo_action TYPE (classname)
+          EXPORTING objects = params
+                    player = player
+                    actor_node = actor_node
+                    engine = me
+                    result = result.
+        IF lo_action IS BOUND.
+          lo_action->execute( ).
+          executed = abap_true.
+        ENDIF.
+      CATCH cx_root INTO DATA(lx_error).
+        result->add( lx_error->get_text( ) ).
+    ENDTRY.
+  ENDMETHOD.
 
   METHOD get_inventory.
     DATA(your_things) = player->get_list( ).
@@ -260,11 +254,9 @@ CLASS ZCL_AXAGE_ENGINE IMPLEMENTATION.
     ENDLOOP.
   ENDMETHOD.
 
-
   METHOD get_location.
     result = player->location->name.
   ENDMETHOD.
-
 
   METHOD interprete.
     DATA processed TYPE abap_bool VALUE abap_false.
@@ -326,6 +318,7 @@ CLASS ZCL_AXAGE_ENGINE IMPLEMENTATION.
              text TYPE string,
              dist TYPE i,
            END OF distance.
+
     DATA distances TYPE SORTED TABLE OF distance WITH NON-UNIQUE KEY dist.
 
     variant = space.
@@ -334,8 +327,8 @@ CLASS ZCL_AXAGE_ENGINE IMPLEMENTATION.
     LOOP AT allowed_commands ASSIGNING FIELD-SYMBOL(<command>).
       DATA(len_action) = strlen( <command>-action ).
       DATA(max) = COND i( WHEN len_action > len_token
-                            THEN len_action
-                            ELSE len_token ).
+                          THEN len_action
+                          ELSE len_token ).
       max = ( 100 - percentage ) * max / 100 + 1.
 
       DATA(dist) = distance( val1 = <command>-action
@@ -352,7 +345,6 @@ CLASS ZCL_AXAGE_ENGINE IMPLEMENTATION.
   METHOD is_completed.
     result = mission_completed.
   ENDMETHOD.
-
 
   METHOD look_around.
     LOOP AT actor_node->get_list( ) INTO DATA(thing).
@@ -373,28 +365,12 @@ CLASS ZCL_AXAGE_ENGINE IMPLEMENTATION.
                result = result ).
   ENDMETHOD.
 
-
-  METHOD look_at.
-    DATA(location) = player->location.
-    LOOP AT object_list INTO DATA(an_object).
-      IF location->exists( an_object ).
-        result->add( |It's { location->get_by_name( an_object )->describe( ) }| ).
-      ELSEIF player->exists( an_object ).
-        result->add( |You carry a { player->get_by_name( an_object )->to_text( ) }| ).
-      ELSE.
-        result->add( |There is no { an_object } to look at| ).
-      ENDIF.
-    ENDLOOP.
-  ENDMETHOD.
-
-
   METHOD new_actor.
     room = NEW zcl_axage_actor( name = name
                                 descr = descr
                                 state = state
                                 engine = me ).
   ENDMETHOD.
-
 
   METHOD new_node.
     ro_thing = new_object(
@@ -403,7 +379,6 @@ CLASS ZCL_AXAGE_ENGINE IMPLEMENTATION.
                        descr = descr ).
   ENDMETHOD.
 
-
   METHOD new_object.
     ro_thing = NEW zcl_axage_thing(
                        type = type
@@ -411,7 +386,7 @@ CLASS ZCL_AXAGE_ENGINE IMPLEMENTATION.
                        name = name
                        descr = descr
                        state = state
-
+                       prefix = prefix
                        can_be_pickup = can_be_pickup
                        can_be_drop = can_be_drop
                        can_be_weld = can_be_weld
@@ -419,7 +394,6 @@ CLASS ZCL_AXAGE_ENGINE IMPLEMENTATION.
                        can_be_splash_into = can_be_splash_into
                        can_be_dunk_into = can_be_dunk_into ).
   ENDMETHOD.
-
 
   METHOD new_room.
     room = NEW zcl_axage_room( name = name
@@ -429,7 +403,6 @@ CLASS ZCL_AXAGE_ENGINE IMPLEMENTATION.
                                image_data = image_data
                                engine = me ).
   ENDMETHOD.
-
 
   METHOD next_room.
     CLEAR target.
@@ -454,7 +427,6 @@ CLASS ZCL_AXAGE_ENGINE IMPLEMENTATION.
     ENDCASE.
   ENDMETHOD.
 
-
   METHOD parse_command.
     DATA cmd TYPE string.
 
@@ -463,7 +435,6 @@ CLASS ZCL_AXAGE_ENGINE IMPLEMENTATION.
     SPLIT cmd AT space INTO action DATA(cmd2).
     SPLIT cmd2 AT space INTO TABLE params.
   ENDMETHOD.
-
 
   METHOD walk_to.
     rv_gone = abap_false.

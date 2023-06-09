@@ -1,27 +1,23 @@
-class ZCL_AXAGE_REPOSITORY definition
-  public
-  create PUBLIC.
+CLASS zcl_axage_repository DEFINITION
+  PUBLIC
+  CREATE PUBLIC.
 
-public section.
+  PUBLIC SECTION.
+    INTERFACES if_serializable_object.
 
-  interfaces IF_SERIALIZABLE_OBJECT .
+    TYPES tv_index  TYPE i.
+    TYPES tt_things TYPE STANDARD TABLE OF REF TO zcl_axage_thing WITH EMPTY KEY.
 
-  types TV_INDEX type I .
-  types:
-    tt_things TYPE STANDARD TABLE OF REF TO zcl_axage_thing WITH EMPTY KEY .
+    DATA all_things TYPE tt_things READ-ONLY.
 
-  data ALL_THINGS type TT_THINGS read-only .
+    METHODS add
+      IMPORTING thing        TYPE REF TO zcl_axage_thing
+      RETURNING VALUE(index) TYPE tv_index.
 
-  methods ADD
-    importing
-      !THING type ref to ZCL_AXAGE_THING
-    returning
-      value(INDEX) type TV_INDEX .
-  methods AT_INDEX
-    importing
-      !INDEX type TV_INDEX
-    returning
-      value(THING) type ref to ZCL_AXAGE_THING .
+    METHODS at_index
+      IMPORTING !index       TYPE tv_index
+      RETURNING VALUE(thing) TYPE REF TO zcl_axage_thing.
+
 ENDCLASS.
 
 
@@ -40,4 +36,5 @@ CLASS ZCL_AXAGE_REPOSITORY IMPLEMENTATION.
       thing = VALUE #( all_things[ index ] OPTIONAL ).
     ENDIF.
   ENDMETHOD.
+
 ENDCLASS.

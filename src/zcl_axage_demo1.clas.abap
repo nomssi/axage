@@ -21,8 +21,6 @@ ENDCLASS.
 
 
 CLASS ZCL_AXAGE_DEMO1 IMPLEMENTATION.
-
-
   METHOD constructor.
     DATA(repository) = NEW zcl_axage_repository( ).
     engine = NEW #( repository ).
