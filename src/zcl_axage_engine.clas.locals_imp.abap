@@ -171,19 +171,14 @@ ENDCLASS.
 CLASS lcl_open IMPLEMENTATION.
 
   METHOD empty.
-    IF box IS INSTANCE OF zif_axage_openable.
-      done = abap_true.
+    done = abap_false.
+    IF box IS NOT INSTANCE OF zif_axage_openable.
       RETURN.
     ENDIF.
-    done = abap_true.
     DATA(container) = CAST zif_axage_openable( box ).
     log->add( container->open( player )->get( ) ).   " Open = move all to
     IF container->is_open( ).
-      log->add_msg( type = 'Success'
-                    title = |open { box->name }|
-                    subtitle = player->location->name
-                    description = |You opened the { box->name } up|
-                    group = '' ).
+      done = abap_true.
 
       DATA finds TYPE string_table.
       LOOP AT container->get_content( )->get_list( ) INTO DATA(content).
@@ -193,6 +188,11 @@ CLASS lcl_open IMPLEMENTATION.
       log->addtab( finds ).
 
       player->add( content ).
+      log->add_msg( type = 'Success'
+                    title = |open { box->name }|
+                    subtitle = player->location->name
+                    description = |You now have to content of the { box->name }|
+                    group = '' ).
     ENDIF.
   ENDMETHOD.
 

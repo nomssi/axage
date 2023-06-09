@@ -166,18 +166,14 @@ CLASS ZCL_AXAGE_THING IMPLEMENTATION.
   ENDMETHOD.
 
 
-  METHOD delete_by_index.
-    IF line_exists( index_list[ index ] ).
-      DELETE index_list WHERE table_line = index.
-    ENDIF.
-  ENDMETHOD.
+
 
 
   METHOD delete_by_name.
     DATA(name_uppercase) = to_upper( name ).
     LOOP AT repository->all_things INTO DATA(thing) WHERE table_line->name = name_uppercase.
-      IF line_exists( index_list[ thing->index ] ).
-        DELETE index_list WHERE table_line = thing->index.
+      DELETE index_list WHERE table_line = thing->index.
+      IF sy-subrc EQ 0.
         RETURN.
       ENDIF.
     ENDLOOP.
@@ -191,18 +187,9 @@ CLASS ZCL_AXAGE_THING IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 
-
-  METHOD exists.
-    exists = abap_false.
-    DATA(name_uppercase) = to_upper( name ).
-    LOOP AT repository->all_things INTO DATA(thing) WHERE table_line->name = name_uppercase.
-      IF line_exists( index_list[ thing->index ] ).
-        exists = abap_true.
-        RETURN.
-      ENDIF.
-    ENDLOOP.
+  METHOD delete_by_index.
+    DELETE index_list WHERE table_line = index.
   ENDMETHOD.
-
 
   METHOD get_by_index.
     IF line_exists( index_list[ table_line = index ] ).
@@ -210,11 +197,21 @@ CLASS ZCL_AXAGE_THING IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 
+  METHOD exists.
+    exists = abap_false.
+    DATA(name_uppercase) = to_upper( name ).
+    LOOP AT repository->all_things INTO DATA(thing) WHERE table_line->name = name_uppercase.
+      IF line_exists( index_list[ table_line = thing->index ] ).
+        exists = abap_true.
+        RETURN.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
 
   METHOD get_by_name.
     DATA(name_uppercase) = to_upper( name ).
     LOOP AT repository->all_things INTO thing WHERE table_line->name = name_uppercase.
-      IF line_exists( index_list[ thing->index ] ).
+      IF line_exists( index_list[ table_line = thing->index ] ).
         RETURN.
       ENDIF.
     ENDLOOP.
