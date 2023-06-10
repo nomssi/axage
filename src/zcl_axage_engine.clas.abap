@@ -4,14 +4,13 @@ CLASS zcl_axage_engine DEFINITION
   CREATE PUBLIC.
 
   PUBLIC SECTION.
-
-    INTERFACES if_serializable_object.
-
     TYPES: BEGIN OF ts_action,
              action  TYPE string,
              execute TYPE classname,
            END OF ts_action.
     TYPES tt_action TYPE SORTED TABLE OF ts_action WITH UNIQUE KEY action.
+
+    INTERFACES if_serializable_object.
 
     METHODS constructor IMPORTING repository TYPE REF TO zcl_axage_repository.
 
@@ -35,6 +34,13 @@ CLASS zcl_axage_engine DEFINITION
                 can_be_dunk_into   TYPE abap_bool                DEFAULT abap_false
       RETURNING VALUE(ro_thing)    TYPE REF TO zcl_axage_thing.
 
+    METHODS new_spell
+      IMPORTING !name              TYPE clike
+                descr              TYPE clike
+                !state             TYPE clike                    OPTIONAL
+                !prefix            TYPE string                   DEFAULT zcl_axage_thing=>c_prefix
+      RETURNING VALUE(ro_thing)    TYPE REF TO zcl_axage_thing.
+
     METHODS new_room
       IMPORTING !name       TYPE clike
                 descr       TYPE clike     OPTIONAL
@@ -47,7 +53,9 @@ CLASS zcl_axage_engine DEFINITION
       IMPORTING !name       TYPE clike
                 descr       TYPE clike
                 !state      TYPE clike OPTIONAL
-      RETURNING VALUE(room) TYPE REF TO zcl_axage_actor.
+                location    TYPE REF TO zcl_axage_room
+                active TYPE abap_bool DEFAULT abap_true
+      RETURNING VALUE(actor) TYPE REF TO zcl_axage_actor.
 
     METHODS interprete
       IMPORTING !command      TYPE clike
@@ -113,7 +121,10 @@ CLASS zcl_axage_engine DEFINITION
 ENDCLASS.
 
 
-CLASS zcl_axage_engine IMPLEMENTATION.
+
+CLASS ZCL_AXAGE_ENGINE IMPLEMENTATION.
+
+
   METHOD add_exits.
     IF location->east->name <> no_exit->name.
       result->add( 'There is a door on the east side' ).
@@ -134,6 +145,7 @@ CLASS zcl_axage_engine IMPLEMENTATION.
       result->add( 'There is a ladder going downstairs' ).
     ENDIF.
   ENDMETHOD.
+
 
   METHOD add_help.
     result->add( `` ).
@@ -164,6 +176,7 @@ CLASS zcl_axage_engine IMPLEMENTATION.
     result->add( `` ).
   ENDMETHOD.
 
+
   METHOD cmd_look.
     IF player->location->dark = abap_true.
       result->add( 'You cannot see in the dark.' ).
@@ -177,9 +190,11 @@ CLASS zcl_axage_engine IMPLEMENTATION.
                     player = player
                     actor_node = actor_node
                     engine = me
-                    result = result )->execute( ).
+                    result = result
+                    operation = 'look' )->execute( ).
     ENDIF.
   ENDMETHOD.
+
 
   METHOD constructor.
     me->repository = repository.
@@ -188,15 +203,18 @@ CLASS zcl_axage_engine IMPLEMENTATION.
                                   " dark = abap_false
                                   " image_data = space
                                   state = space
-                                  engine = me ).
+                                  repository = repository
+                                  no_exit = no_exit ).
     no_exit->no_exit = no_exit. " circular definition. of no_exit->no_exit not critical as the variable should not be used)
     map = NEW #( no_exit ).
 
-    player = new_actor( name = 'PLAYER' descr = 'player name' ).
-    " actors = NEW zcl_axage_actor( name = '' descr = 'AllActors' engine = me ).
+    " First create actor_node, then define actors
     actor_node = new_node( name = 'AllActors' ).
-    allowed_commands = VALUE #( ( action = 'ASK' execute = 'LCL_PICKUP' )
-                                ( action = 'CAST' execute = 'LCL_CAST' )
+
+    player = new_actor( name = 'PLAYER' descr = '(you)' location = no_exit ).
+
+    allowed_commands = VALUE #( ( action = 'ASK' execute = 'LCL_ASK' )
+                                ( action = 'CAST' execute = 'LCL_COMMAND' )
                                 ( action = 'DROP' execute = 'LCL_DROP' )
                                 ( action = 'DUNK' execute = 'LCL_DUNK' )
                                 ( action = 'DOWN' )
@@ -215,10 +233,11 @@ CLASS zcl_axage_engine IMPLEMENTATION.
                                 ( action = 'WEST' ) ).
   ENDMETHOD.
 
-  METHOD custom_action.
-    DATA lo_action TYPE REF TO lcl_action.
 
+  METHOD custom_action.
+    DATA lo_action TYPE REF TO zcl_axage_action.
     executed = abap_false.
+
     DATA(classname) = VALUE #( allowed_commands[ action = action ]-execute OPTIONAL ).
 
     IF classname IS INITIAL.
@@ -226,12 +245,18 @@ CLASS zcl_axage_engine IMPLEMENTATION.
     ENDIF.
 
     TRY.
+*        DATA(lo_action) = zcl_axage_action=>new( engine = me
+*                                                 action = action
+*                                                 params = params
+*                                                 result = result ).
         CREATE OBJECT lo_action TYPE (classname)
           EXPORTING objects = params
-                    player = player
-                    actor_node = actor_node
+                    player = me->player
+                    actor_node = me->actor_node
                     engine = me
-                    result = result.
+                    result = result
+                    operation = action.
+
         IF lo_action IS BOUND.
           lo_action->execute( ).
           executed = abap_true.
@@ -240,6 +265,7 @@ CLASS zcl_axage_engine IMPLEMENTATION.
         result->add( lx_error->get_text( ) ).
     ENDTRY.
   ENDMETHOD.
+
 
   METHOD get_inventory.
     DATA(your_things) = player->get_list( ).
@@ -250,13 +276,15 @@ CLASS zcl_axage_engine IMPLEMENTATION.
       result->add( |You are carrying:| ).
     ENDIF.
     LOOP AT your_things INTO DATA(thing_inv).
-      result->add( thing_inv->to_text( ) ).
+      result->add( thing_inv->describe( with_state = abap_false ) ).
     ENDLOOP.
   ENDMETHOD.
+
 
   METHOD get_location.
     result = player->location->name.
   ENDMETHOD.
+
 
   METHOD interprete.
     DATA processed TYPE abap_bool VALUE abap_false.
@@ -269,6 +297,7 @@ CLASS zcl_axage_engine IMPLEMENTATION.
 
     processed = walk_to( room = next_room( action )
                          result = result ).
+
     IF processed = abap_false.
       processed = custom_action( action = action
                                  params = params
@@ -313,6 +342,133 @@ CLASS zcl_axage_engine IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 
+
+  METHOD is_completed.
+    result = mission_completed.
+  ENDMETHOD.
+
+
+  METHOD look_around.
+    LOOP AT actor_node->get_list( ) INTO DATA(thing).
+      DATA(actor) = CAST zcl_axage_actor( thing ).
+      IF actor->get_location( ) = player->location.
+        result->add( |There is { actor->describe( with_state = abap_false ) }| ).
+      ENDIF.
+    ENDLOOP.
+
+    result->add( `` ).
+
+    IF player->location->get_list( ) IS INITIAL.
+      result->add( |You are at { player->location->describe( ) }|  ).
+    ELSE.
+      result->add( |You see| ).
+      result->addtab( player->location->show( ) ).
+    ENDIF.
+
+    result->add( `` ).
+
+    add_exits( location = player->location
+               result = result ).
+  ENDMETHOD.
+
+
+  METHOD new_actor.
+    actor = NEW zcl_axage_actor( name = name
+                                descr = descr
+                                state = state
+                                active = active
+                                repository = me->repository ).
+    actor->set_location( location ).
+    actor_node->add( actor ).
+  ENDMETHOD.
+
+
+  METHOD new_node.
+    ro_thing = new_object(
+                       type = zcl_axage_thing=>c_type_node
+                       name = name
+                       descr = descr ).
+  ENDMETHOD.
+
+
+  METHOD new_object.
+    ro_thing = NEW zcl_axage_thing(
+                       type = type
+                       repository = me->repository
+                       name = name
+                       descr = descr
+                       state = state
+                       prefix = prefix
+                       can_be_pickup = can_be_pickup
+                       can_be_drop = can_be_drop
+                       can_be_weld = can_be_weld
+                       can_be_open = can_be_open
+                       can_be_splash_into = can_be_splash_into
+                       can_be_dunk_into = can_be_dunk_into ).
+  ENDMETHOD.
+
+
+  METHOD new_room.
+    room = NEW zcl_axage_room( name = name
+                               descr = descr
+                               state = state
+                               dark = dark
+                               image_data = image_data
+                               repository = me->repository
+                               no_exit = me->no_exit ).
+  ENDMETHOD.
+
+
+  METHOD new_spell.
+    ro_thing = NEW zcl_axage_castable_spell(
+                       repository = me->repository
+                       name = name
+                       descr = descr
+                       state = state
+                       prefix = prefix
+                       can_be_pickup = abap_true
+                       can_be_drop = abap_false
+                       can_be_weld = abap_false
+                       can_be_open = abap_false
+                       can_be_splash_into = abap_false
+                       can_be_dunk_into = abap_false ).
+  ENDMETHOD.
+
+
+  METHOD next_room.
+    CLEAR target.
+    CASE action.
+      WHEN 'N' OR 'NORTH'.
+        target = player->location->north.
+
+      WHEN 'S' OR 'SOUTH'.
+        target = player->location->south.
+
+      WHEN 'E' OR 'EAST'.
+        target = player->location->east.
+
+      WHEN 'W' OR 'WEST'.
+        target = player->location->west.
+
+      WHEN 'U' OR 'UP'.
+        target = player->location->up.
+
+      WHEN 'D' OR 'DOWN'.
+        target = player->location->down.
+    ENDCASE.
+  ENDMETHOD.
+
+
+  METHOD parse_command.
+    DATA cmd TYPE string.
+
+    cmd = to_upper( command ).
+
+    SPLIT cmd AT space INTO action DATA(cmd2).
+    SPLIT cmd2 AT space INTO TABLE params.
+  ENDMETHOD.
+
+
   METHOD propose_command.
     TYPES: BEGIN OF distance,
              text TYPE string,
@@ -342,99 +498,6 @@ CLASS zcl_axage_engine IMPLEMENTATION.
     variant = VALUE #( distances[ 1 ]-text OPTIONAL ).
   ENDMETHOD.
 
-  METHOD is_completed.
-    result = mission_completed.
-  ENDMETHOD.
-
-  METHOD look_around.
-    LOOP AT actor_node->get_list( ) INTO DATA(thing).
-      DATA(actor) = CAST zcl_axage_actor( thing ).
-      IF actor->get_location( ) = player->location.
-        result->add( |There is { actor->to_text( ) }| ).
-      ENDIF.
-    ENDLOOP.
-
-    IF player->location->get_list( ) IS INITIAL.
-      result->add( 'There is nothing interesting to see...' ).
-    ELSE.
-      result->add( |You see| ).
-      result->addtab( player->location->show( ) ).
-    ENDIF.
-
-    add_exits( location = player->location
-               result = result ).
-  ENDMETHOD.
-
-  METHOD new_actor.
-    room = NEW zcl_axage_actor( name = name
-                                descr = descr
-                                state = state
-                                engine = me ).
-  ENDMETHOD.
-
-  METHOD new_node.
-    ro_thing = new_object(
-                       type = zcl_axage_thing=>c_type_node
-                       name = name
-                       descr = descr ).
-  ENDMETHOD.
-
-  METHOD new_object.
-    ro_thing = NEW zcl_axage_thing(
-                       type = type
-                       engine = me
-                       name = name
-                       descr = descr
-                       state = state
-                       prefix = prefix
-                       can_be_pickup = can_be_pickup
-                       can_be_drop = can_be_drop
-                       can_be_weld = can_be_weld
-                       can_be_open = can_be_open
-                       can_be_splash_into = can_be_splash_into
-                       can_be_dunk_into = can_be_dunk_into ).
-  ENDMETHOD.
-
-  METHOD new_room.
-    room = NEW zcl_axage_room( name = name
-                               descr = descr
-                               state = state
-                               dark = dark
-                               image_data = image_data
-                               engine = me ).
-  ENDMETHOD.
-
-  METHOD next_room.
-    CLEAR target.
-    CASE action.
-      WHEN 'N' OR 'NORTH'.
-        target = player->location->north.
-
-      WHEN 'S' OR 'SOUTH'.
-        target = player->location->south.
-
-      WHEN 'E' OR 'EAST'.
-        target = player->location->east.
-
-      WHEN 'W' OR 'WEST'.
-        target = player->location->west.
-
-      WHEN 'U' OR 'UP'.
-        target = player->location->up.
-
-      WHEN 'D' OR 'DOWN'.
-        target = player->location->down.
-    ENDCASE.
-  ENDMETHOD.
-
-  METHOD parse_command.
-    DATA cmd TYPE string.
-
-    cmd = to_upper( command ).
-
-    SPLIT cmd AT space INTO action DATA(cmd2).
-    SPLIT cmd2 AT space INTO TABLE params.
-  ENDMETHOD.
 
   METHOD walk_to.
     rv_gone = abap_false.

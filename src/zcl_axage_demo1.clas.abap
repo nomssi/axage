@@ -21,6 +21,8 @@ ENDCLASS.
 
 
 CLASS ZCL_AXAGE_DEMO1 IMPLEMENTATION.
+
+
   METHOD constructor.
     DATA(repository) = NEW zcl_axage_repository( ).
     engine = NEW #( repository ).
@@ -70,19 +72,17 @@ CLASS ZCL_AXAGE_DEMO1 IMPLEMENTATION.
       descr   = 'a little card box'
       content = content_of_box
       needed  = needed_to_open_box
-      engine = engine ).
+      repository = repository ).
     consulting->add( card_box ).
 
     engine->player->set_location( entrance ).
 
-    bill_developer = engine->new_actor( name = 'Bill' descr = 'An ABAP developer' ).
-    bill_developer->set_location( developer ).
+    bill_developer = engine->new_actor( name = 'Bill' descr = 'An ABAP developer' location = developer ).
     bill_developer->add_sentences( VALUE #(
       ( |Hey, I am Bill, an experienced ABAP developer.| )
       ( |If you have programming tasks for me, you can pass the requirement to me| ) ) ).
 
-    mark_consultant = engine->new_actor( name = 'Mark' descr = 'An SAP consultant' ).
-    mark_consultant->set_location( consulting ).
+    mark_consultant = engine->new_actor( name = 'Mark' descr = 'An SAP consultant' location = consulting ).
     mark_consultant->add_sentences( VALUE #(
       ( |Hello, My name is Mark and I am an SAP consultant| )
       ( |You can ask me anything about SAP processes.| ) ) ).

@@ -39,7 +39,7 @@ CLASS ltcl_engine IMPLEMENTATION.
 
   METHOD setup.
     DATA(repo) = NEW zcl_axage_repository( ).
-    cut = NEW #( repo ).
+    cut = NEW #( repository = repo ).
   ENDMETHOD.
 
   METHOD take_and_drop.

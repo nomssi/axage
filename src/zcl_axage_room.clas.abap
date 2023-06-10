@@ -13,8 +13,8 @@ CLASS zcl_axage_room DEFINITION INHERITING FROM zcl_axage_thing
     DATA no_exit TYPE REF TO zcl_axage_room.
 
     DATA dark TYPE abap_bool.
-    DATA image_data TYPE string.
 
+    METHODS get_image RETURNING VALUE(data) TYPE string.
     METHODS constructor
       IMPORTING
         name  TYPE clike
@@ -22,7 +22,8 @@ CLASS zcl_axage_room DEFINITION INHERITING FROM zcl_axage_thing
         state TYPE clike OPTIONAL
         dark TYPE abap_bool OPTIONAL
         image_data TYPE string OPTIONAL
-        engine TYPE REF TO zcl_axage_engine.
+        repository TYPE REF TO zcl_axage_repository
+        no_exit TYPE REF TO zcl_axage_room.
     METHODS set_exits
       IMPORTING
         u TYPE REF TO zcl_axage_room OPTIONAL
@@ -33,6 +34,7 @@ CLASS zcl_axage_room DEFINITION INHERITING FROM zcl_axage_thing
         w TYPE REF TO zcl_axage_room OPTIONAL.
 
   PROTECTED SECTION.
+    DATA image_data TYPE string.
     METHODS set_exit
       IMPORTING
         room        TYPE REF TO zcl_axage_room
@@ -45,12 +47,22 @@ ENDCLASS.
 
 CLASS ZCL_AXAGE_ROOM IMPLEMENTATION.
 
+  METHOD get_image.
+    IF dark EQ abap_false.
+      data = image_data.
+    ENDIF.
+  ENDMETHOD.
 
   METHOD constructor.
-    super->constructor( type = c_type_room name = name state = state descr = descr engine = engine prefix = prefix ).
+    super->constructor( type = c_type_room
+                        name = name
+                        state = state
+                        descr = descr
+                        repository = repository
+                        prefix = prefix ).
     me->dark       = dark.
     me->image_data = image_data.
-    no_exit = engine->no_exit.
+    me->no_exit = no_exit.
   ENDMETHOD.
 
 

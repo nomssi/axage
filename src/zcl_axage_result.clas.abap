@@ -18,12 +18,14 @@ CLASS zcl_axage_result DEFINITION
 
     METHODS reset.
 
-    METHODS add_msg
-      IMPORTING !type        TYPE string
-                !title       TYPE string
+    METHODS success_msg
+      IMPORTING !title       TYPE string
                 subtitle     TYPE string
-                !description TYPE string
-                !group       TYPE string.
+                !description TYPE string.
+    METHODS error_msg
+      IMPORTING !title       TYPE string
+                subtitle     TYPE string
+                !description TYPE string.
 
     METHODS add
       IMPORTING !text TYPE clike.
@@ -42,6 +44,13 @@ CLASS zcl_axage_result DEFINITION
 
   PROTECTED SECTION.
     DATA text TYPE string_table.
+
+    METHODS add_msg
+      IMPORTING !type        TYPE string
+                !title       TYPE string
+                subtitle     TYPE string
+                !description TYPE string
+                !group       TYPE string.
 ENDCLASS.
 
 
@@ -52,6 +61,22 @@ CLASS zcl_axage_result IMPLEMENTATION.
                     subtitle = subtitle
                     description = description
                     group = group ) TO me->t_msg.
+  ENDMETHOD.
+
+  METHOD success_msg.
+    add_msg( type = 'Success'
+             title = title
+             subtitle = subtitle
+             description = description
+             group = space ).
+  ENDMETHOD.
+
+  METHOD error_msg.
+    add_msg( type = 'Error'
+             title = title
+             subtitle = subtitle
+             description = description
+             group = space ).
   ENDMETHOD.
 
   METHOD add.

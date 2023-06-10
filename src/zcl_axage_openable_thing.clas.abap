@@ -19,7 +19,7 @@ CLASS zcl_axage_openable_thing DEFINITION
                 prefix             TYPE string DEFAULT zcl_axage_thing=>c_prefix
                 needed             TYPE REF TO zcl_axage_thing
                 content            TYPE REF TO zcl_axage_thing
-                engine             TYPE REF TO zcl_axage_engine
+                repository         TYPE REF TO zcl_axage_repository
                 can_be_pickup      TYPE abap_bool DEFAULT abap_true
                 can_be_drop        TYPE abap_bool DEFAULT  abap_true
                 can_weld           TYPE abap_bool DEFAULT abap_false
@@ -54,7 +54,7 @@ CLASS ZCL_AXAGE_OPENABLE_THING IMPLEMENTATION.
          can_be_open = abap_true
          can_be_splash_into = can_be_splash_into
          can_be_dunk_into = can_be_dunk_into
-         engine = engine ).
+         repository = repository ).
     me->needed = needed.
     me->content = content.
   ENDMETHOD.

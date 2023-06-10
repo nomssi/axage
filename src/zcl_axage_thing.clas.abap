@@ -42,14 +42,14 @@ CLASS zcl_axage_thing DEFINITION
       IMPORTING
         name  TYPE clike
         descr TYPE clike OPTIONAL
-        engine TYPE REF TO zcl_axage_engine
+        repository TYPE REF TO zcl_axage_repository
         prefix TYPE string
       RETURNING VALUE(ro_thing) TYPE REF TO zcl_axage_thing.
 
     CLASS-METHODS new
       IMPORTING
         type TYPE tv_type DEFAULT c_type_thing
-        engine TYPE REF TO zcl_axage_engine
+        repository TYPE REF TO zcl_axage_repository
         name  TYPE clike
         descr TYPE clike
         state TYPE clike OPTIONAL
@@ -66,7 +66,7 @@ CLASS zcl_axage_thing DEFINITION
     METHODS constructor
       IMPORTING
         type TYPE tv_type DEFAULT c_type_thing
-        engine TYPE REF TO zcl_axage_engine
+        repository TYPE REF TO zcl_axage_repository
         name  TYPE clike
         descr TYPE clike
         state TYPE clike
@@ -81,8 +81,8 @@ CLASS zcl_axage_thing DEFINITION
          first TYPE tv_index DEFAULT 1
          rest TYPE tv_index DEFAULT 1.
 
-    METHODS to_text RETURNING VALUE(text) TYPE string.
-    METHODS describe RETURNING VALUE(text) TYPE string.
+    METHODS describe IMPORTING with_state TYPE abap_bool DEFAULT abap_true
+                     RETURNING VALUE(text) TYPE string.
 
     METHODS get_list
       IMPORTING include_nodes TYPE abap_bool DEFAULT abap_false
@@ -151,7 +151,7 @@ CLASS ZCL_AXAGE_THING IMPLEMENTATION.
     me->can_be_open        = can_be_open.
     me->can_be_splash_into = can_be_splash_into.
     me->can_be_dunk_into   = can_be_dunk_into.
-    repository = engine->repository.
+    me->repository = repository.
 
     index = repository->add( me ).
   ENDMETHOD.
@@ -161,7 +161,7 @@ CLASS ZCL_AXAGE_THING IMPLEMENTATION.
     ro_thing = new( type = c_type_node
                     name = name
                     descr = descr
-                    engine = engine
+                    repository = repository
                     prefix = prefix ).
   ENDMETHOD.
 
@@ -179,10 +179,12 @@ CLASS ZCL_AXAGE_THING IMPLEMENTATION.
     ENDLOOP.
   ENDMETHOD.
 
-
   METHOD describe.
-    text = prefix && to_text( ).
-    IF state IS NOT INITIAL.
+    text = prefix && name.
+    IF description IS NOT INITIAL.
+      text = text && | { description }|.
+    ENDIF.
+    IF with_state = abap_true AND state IS NOT INITIAL.
       text = text && |, { state }|.
     ENDIF.
   ENDMETHOD.
@@ -242,7 +244,7 @@ CLASS ZCL_AXAGE_THING IMPLEMENTATION.
   METHOD new.
     ro_thing = NEW ZCL_AXAGE_THING(
                        type = type
-                       engine = engine
+                       repository = repository
                        name = name
                        descr = descr
                        state = state
@@ -265,12 +267,4 @@ CLASS ZCL_AXAGE_THING IMPLEMENTATION.
     ENDLOOP.
   ENDMETHOD.
 
-
-  METHOD to_text.
-    IF description IS INITIAL.
-      text = name.
-    ELSE.
-      text = |{ name } { description }|.
-    ENDIF.
-  ENDMETHOD.
 ENDCLASS.

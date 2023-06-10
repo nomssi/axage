@@ -2,110 +2,36 @@
 *"* local helper classes, interface definitions and type
 *"* declarations
 
-INTERFACE lif_axage_command.
-  METHODS execute.
-ENDINTERFACE.
-
-CLASS lcl_action DEFINITION ABSTRACT.
+CLASS lcl_command DEFINITION INHERITING FROM zcl_axage_action.
   PUBLIC SECTION.
-    INTERFACES lif_axage_command ABSTRACT METHODS execute.
-    ALIASES execute FOR lif_axage_command~execute.
-    METHODS constructor IMPORTING objects TYPE string_table
-                                  player  TYPE REF TO zcl_axage_actor
-                                  actor_node  TYPE REF TO zcl_axage_thing
-                                  engine TYPE REF TO zcl_axage_engine
-                                  !result TYPE REF TO zcl_axage_result.
-
-  PROTECTED SECTION.
-    DATA objects TYPE string_table.
-    DATA player TYPE REF TO zcl_axage_actor.
-    DATA actor_node TYPE REF TO zcl_axage_thing.
-    DATA result  TYPE REF TO zcl_axage_result.
-    DATA engine TYPE REF TO zcl_axage_engine.
-
-    DATA param1 TYPE string.
-    DATA owned_things TYPE zcl_axage_thing=>tt_index.
-    DATA available_things TYPE zcl_axage_thing=>tt_index.
-    DATA repository TYPE REF TO zcl_axage_repository.
-
-    METHODS validate IMPORTING into_object  TYPE string
-                               operation    TYPE string
-                               it_from      TYPE zcl_axage_thing=>tt_index
-                     EXPORTING eo_item      TYPE REF TO zcl_axage_thing
-                     RETURNING VALUE(valid) TYPE abap_bool.
-
+    METHODS execute REDEFINITION.
 ENDCLASS.
 
-CLASS lcl_action IMPLEMENTATION.
+CLASS lcl_command IMPLEMENTATION.
 
-  METHOD constructor.
-    me->objects = objects.
-    me->player = player.
-    me->actor_node = actor_node.
-    me->result = result.
-    me->engine = engine.
+  METHOD execute.
+    DATA lo_item TYPE REF TO zcl_axage_thing.
 
-    owned_things = player->index_list.
-    available_things = player->location->index_list.
-    repository = engine->repository.
-    param1 = VALUE #( objects[ 1 ] OPTIONAL ).
-  ENDMETHOD.
-
-  METHOD validate.
-    FIELD-SYMBOLS <flag> TYPE abap_bool.
-
-    valid = abap_false.
-    CLEAR eo_item.
-    IF param1 IS INITIAL.
-      result->insert( |{ operation } what?| ).
-      result->add_msg( type = 'error'
-                       title = |{ operation } { param1 } { into_object }|
-                       subtitle = operation
-                       description = |{ operation } what?|
-                       group = '' ).
-    ELSE.
-      LOOP AT it_from INTO DATA(from_idx).
-        DATA(from) = repository->at_index( from_idx ).
-        IF from IS BOUND AND from->name = into_object.
-          eo_item = from.
-          EXIT.
-        ENDIF.
-      ENDLOOP.
-      IF eo_item IS BOUND.
-
-        DATA(attribute) = |EO_ITEM->CAN_BE_{ to_upper( operation ) }|.
-        ASSIGN (attribute) TO <flag>.
-        IF sy-subrc = 0 AND <flag> = abap_false.
-          result->add( |{ operation } is not allowed for a { into_object }| ).
-          result->add_msg( type = 'Error'
-                           title = |{ operation } { into_object }|
-                           subtitle = player->location->name
-                           description = |{ operation } is not allowed for a { into_object }|
-                           group = '' ).
+    IF validate( EXPORTING into_object = param1
+                           operation = operation
+                           it_from = owned_things
+                 IMPORTING eo_item = lo_item ).
+      IF lo_item IS BOUND.
+        IF lo_item IS INSTANCE OF zif_axage_command.
+          CAST zif_axage_command( lo_item )->execute( engine = engine
+                                                      result = result ).
         ELSE.
-          valid = abap_true.
+          result->add( |You cannot use { operation } on { param1 }.| ).
         ENDIF.
-      ELSEIF from IS BOUND AND from->get_list( ) IS INITIAL.
-        result->add( |You have nothing to { operation }...| ).
-        result->add_msg( type = 'Error'
-                         title = |{ operation } { into_object }|
-                         subtitle = player->location->name
-                         description = |You have nothing to { operation }...|
-                         group = '' ).
       ELSE.
-        result->add( |There is no { into_object } you can { operation }| ).
-        result->add_msg( type = 'Error'
-                         title = |{ operation } { into_object }|
-                         subtitle = player->location->name
-                         description = |There is no { into_object } you can { operation }|
-                         group = '' ).
+        result->add( |You have not learned that yet| ).
       ENDIF.
     ENDIF.
   ENDMETHOD.
 
 ENDCLASS.
 
-CLASS lcl_drop DEFINITION INHERITING FROM lcl_action.
+CLASS lcl_drop DEFINITION INHERITING FROM zcl_axage_action.
   PUBLIC SECTION.
     METHODS execute REDEFINITION.
 ENDCLASS.
@@ -122,17 +48,15 @@ CLASS lcl_drop IMPLEMENTATION.
       player->delete_by_name( param1 ).
       player->location->add( item ).
       result->add( |You dropped the { param1 }| ).
-      result->add_msg( type = 'Success'
-                       title = |drop { param1 }|
-                       subtitle = player->location->name
-                       description = |You dropped the { param1 }|
-                       group = '' ).
+      result->success_msg( title = |drop { param1 }|
+                           subtitle = player->location->name
+                           description = |You dropped the { param1 }| ).
     ENDIF.
   ENDMETHOD.
 
 ENDCLASS.
 
-CLASS lcl_pickup DEFINITION INHERITING FROM lcl_action.
+CLASS lcl_pickup DEFINITION INHERITING FROM zcl_axage_action.
   PUBLIC SECTION.
     METHODS execute REDEFINITION.
 ENDCLASS.
@@ -140,26 +64,27 @@ ENDCLASS.
 CLASS lcl_pickup IMPLEMENTATION.
   METHOD execute.
     DATA item TYPE REF TO zcl_axage_thing.
+
+    mandatory_params( 1 ).
+
     LOOP AT objects INTO param1.
       IF validate( EXPORTING into_object = param1
-                             operation = 'pickup'
+                             operation = operation
                              it_from = available_things
                    IMPORTING eo_item = item ).
         player->add( item ).
         player->location->delete_by_name( param1 ).
         result->add( |You picked the { param1 } up| ).
-        result->add_msg( type = 'Success'
-                         title = |pickup { param1 }|
-                         subtitle = player->location->name
-                         description = |You picked the { param1 } up|
-                         group = '' ).
+        result->success_msg( title = |pickup { param1 }|
+                             subtitle = player->location->name
+                             description = |You picked the { param1 } up| ).
       ENDIF.
     ENDLOOP.
   ENDMETHOD.
 
 ENDCLASS.
 
-CLASS lcl_open DEFINITION INHERITING FROM lcl_action.
+CLASS lcl_open DEFINITION INHERITING FROM zcl_axage_action.
   PUBLIC SECTION.
     METHODS execute REDEFINITION.
   PROTECTED SECTION.
@@ -189,11 +114,10 @@ CLASS lcl_open IMPLEMENTATION.
       log->add( |You have picked up the contains of the { box->name }.| ).
 
       player->add( content ).
-      log->add_msg( type = 'Success'
+      log->success_msg(
                     title = |open { box->name }|
                     subtitle = player->location->name
-                    description = |You now have to content of the { box->name }|
-                    group = '' ).
+                    description = |You now have to content of the { box->name }| ).
     ENDIF.
   ENDMETHOD.
 
@@ -216,14 +140,13 @@ CLASS lcl_open IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS lcl_ask DEFINITION INHERITING FROM lcl_action.
+CLASS lcl_ask DEFINITION INHERITING FROM zcl_axage_action.
   PUBLIC SECTION.
     TYPES list_of_actors TYPE STANDARD TABLE OF REF TO zcl_axage_actor WITH EMPTY KEY.
 
     METHODS execute REDEFINITION.
 
-    METHODS filter_actors IMPORTING actor_node TYPE REF TO zcl_axage_thing
-                                    location TYPE REF TO zcl_axage_room
+    METHODS filter_actors IMPORTING location TYPE REF TO zcl_axage_room
                           RETURNING VALUE(rt_actors) TYPE list_of_actors.
 ENDCLASS.
 
@@ -240,13 +163,8 @@ CLASS lcl_ask IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD execute.
-    CHECK validate( EXPORTING into_object = param1
-                              operation = 'ask'
-                              it_from = owned_things ).
-
     DATA(name) = param1.
-    DATA(actors_in_the_room) = filter_actors( location = player->location
-                                              actor_node = actor_node ).
+    DATA(actors_in_the_room) = filter_actors( location = player->location ).
 
     IF lines( actors_in_the_room ) = 0.
       result->add( 'There is no one here to ask...' ).
@@ -254,8 +172,7 @@ CLASS lcl_ask IMPLEMENTATION.
       IF name IS INITIAL.
         result->add( 'Whom do you want to ask?' ).
       ELSE.
-        LOOP AT actors_in_the_room INTO DATA(actor)
-          WHERE table_line->nameuppercase = name.
+        LOOP AT actors_in_the_room INTO DATA(actor) WHERE table_line->nameuppercase = name.
           result->addtab( actor->speak( ) ).
         ENDLOOP.
         IF sy-subrc NE 0.
@@ -266,7 +183,7 @@ CLASS lcl_ask IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS lcl_weld DEFINITION INHERITING FROM lcl_action.
+CLASS lcl_weld DEFINITION INHERITING FROM zcl_axage_action.
   PUBLIC SECTION.
     METHODS execute REDEFINITION.
 ENDCLASS.
@@ -291,7 +208,7 @@ CLASS lcl_weld IMPLEMENTATION.
           DATA(new_object_name) = |{ param1 }+{  object2 }|.
           DATA(new_object) = zcl_axage_thing=>new( name = new_object_name
                                                    descr = 'welded'
-                                                   engine = engine ).
+                                                   repository = engine->repository ).
           " Add new object object1+object2
           player->add( new_object ).
 
@@ -310,7 +227,7 @@ CLASS lcl_weld IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS lcl_splash DEFINITION INHERITING FROM lcl_action.
+CLASS lcl_splash DEFINITION INHERITING FROM zcl_axage_action.
   PUBLIC SECTION.
     METHODS execute REDEFINITION.
 ENDCLASS.
@@ -344,7 +261,7 @@ CLASS lcl_splash IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS lcl_dunk DEFINITION INHERITING FROM lcl_action.
+CLASS lcl_dunk DEFINITION INHERITING FROM zcl_axage_action.
   PUBLIC SECTION.
     METHODS execute REDEFINITION.
 ENDCLASS.
@@ -389,32 +306,7 @@ CLASS lcl_dunk IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS lcl_cast DEFINITION INHERITING FROM lcl_action.
-  PUBLIC SECTION.
-    METHODS execute REDEFINITION.
-ENDCLASS.
-
-CLASS lcl_cast IMPLEMENTATION.
-
-  METHOD execute.
-    DATA lo_item TYPE REF TO zcl_axage_thing.
-
-    IF validate( EXPORTING into_object = param1
-                           operation = 'cast'
-                           it_from = owned_things
-                 IMPORTING eo_item = lo_item ).
-      IF lo_item IS BOUND.
-        player->location->dark = abap_false.
-        result->add( |You cast the spell { lo_item->describe( ) }| ).
-      ELSE.
-        result->add( |You have not learned that spell yet| ).
-      ENDIF.
-    ENDIF.
-  ENDMETHOD.
-
-ENDCLASS.
-
-CLASS lcl_look DEFINITION INHERITING FROM lcl_action.
+CLASS lcl_look DEFINITION INHERITING FROM zcl_axage_action.
   PUBLIC SECTION.
     METHODS execute REDEFINITION.
     METHODS details IMPORTING !object TYPE REF TO zcl_axage_thing
@@ -426,24 +318,24 @@ ENDCLASS.
 CLASS lcl_look IMPLEMENTATION.
   METHOD execute.
     DATA item TYPE REF TO zcl_axage_thing.
+
+    mandatory_params( 1 ).
     LOOP AT objects INTO param1.
       IF validate( EXPORTING into_object = param1
-                             operation = 'look'
+                             operation = operation
                              it_from = available_things
                    IMPORTING eo_item = item ).
-        result->add( |You look at the { param1 }.| ).
         result->add( |You see { item->describe( ) }| ).
         details( log = result
                  location = player->location
                  object = item ).
 
-        result->add_msg( type = 'Success'
+        result->success_msg(
                          title = |look at { param1 }|
                          subtitle = player->location->name
-                         description = |You looked at the { param1 }|
-                         group = '' ).
+                         description = |You looked at the { param1 }| ).
       ELSEIF validate( EXPORTING into_object = param1
-                                 operation = 'look'
+                                 operation = operation
                                  it_from = owned_things
                        IMPORTING eo_item = item ).
         result->add( |You look at the { param1 } you are carrying.| ).
@@ -452,38 +344,38 @@ CLASS lcl_look IMPLEMENTATION.
                  location = player
                  object = item ).
 
-        result->add_msg( type = 'Success'
+        result->success_msg(
                          title = |look at { param1 }|
                          subtitle = player->location->name
-                         description = |You looked at the { param1 } you are carrying|
-                         group = '' ).
-
+                         description = |You looked at the { param1 } you are carrying| ).
       ENDIF.
     ENDLOOP.
   ENDMETHOD.
 
   METHOD details.
+    DATA finds TYPE string_table.
+
     done = abap_false.
-    IF NOT object IS INSTANCE OF zif_axage_openable.
+    IF object IS NOT INSTANCE OF zif_axage_openable.
       RETURN.
     ENDIF.
     DATA(container) = CAST zif_axage_openable( object ).
     container->details( location ).
-    IF container->is_open( ).
-      log->add_msg( type = 'Success'
-                    title = |look at { object->name }|
-                    subtitle = location->name
-                    description = |You look at details of { object->name }|
-                    group = '' ).
-
-      DATA finds TYPE string_table.
-      LOOP AT container->get_content( )->get_list( ) INTO DATA(content).
-        APPEND content->describe(  ) TO finds.
-        location->add( content ).
-      ENDLOOP.
-      log->add( |The { object->name } has:| ).
-      log->addtab( finds ).
+    IF NOT container->is_open( ).
+      RETURN.
     ENDIF.
+
+    log->success_msg(
+                  title = |look at { object->name }|
+                  subtitle = location->name
+                  description = |You look at details of { object->name }| ).
+
+    LOOP AT container->get_content( )->get_list( ) INTO DATA(content).
+      APPEND content->describe( ) TO finds.
+      location->add( content ).
+    ENDLOOP.
+    log->add( |The { object->name } has:| ).
+    log->addtab( finds ).
   ENDMETHOD.
 
 ENDCLASS.
