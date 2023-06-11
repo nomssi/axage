@@ -349,15 +349,14 @@ CLASS ZCL_AXAGE_ENGINE IMPLEMENTATION.
 
 
   METHOD look_around.
-    LOOP AT actor_node->get_list( ) INTO DATA(thing).
-      DATA(actor) = CAST zcl_axage_actor( thing ).
-      IF actor->get_location( ) = player->location.
-        result->add( |There is { actor->describe( with_state = abap_false ) }| ).
-      ENDIF.
-    ENDLOOP.
+*    LOOP AT actor_node->get_list( ) INTO DATA(thing).
+*      DATA(actor) = CAST zcl_axage_actor( thing ).
+*      IF actor->get_location( ) = player->location.
+*        result->add( |There is { actor->describe( with_state = abap_false ) }| ).
+*      ENDIF.
+*    ENDLOOP.
 
     result->add( `` ).
-
     IF player->location->get_list( ) IS INITIAL.
       result->add( |You are at { player->location->describe( ) }|  ).
     ELSE.

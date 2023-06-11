@@ -165,10 +165,6 @@ CLASS ZCL_AXAGE_THING IMPLEMENTATION.
                     prefix = prefix ).
   ENDMETHOD.
 
-
-
-
-
   METHOD delete_by_name.
     DATA(name_uppercase) = to_upper( name ).
     LOOP AT repository->all_things INTO DATA(thing) WHERE table_line->name = name_uppercase.

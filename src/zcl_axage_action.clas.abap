@@ -35,8 +35,8 @@ CLASS zcl_axage_action DEFINITION
                                it_from      TYPE zcl_axage_thing=>tt_index
                      EXPORTING eo_item      TYPE REF TO zcl_axage_thing
                      RETURNING VALUE(valid) TYPE abap_bool.
-    METHODS mandatory_params IMPORTING number TYPE i.
-
+    METHODS mandatory_params IMPORTING number TYPE i
+                             RETURNING VALUE(valid) TYPE abap_bool.
   PRIVATE SECTION.
 ENDCLASS.
 
@@ -44,7 +44,9 @@ CLASS zcl_axage_action IMPLEMENTATION.
 
   METHOD mandatory_params.
     DATA(count) = lines( objects ).
+    valid = abap_true.
     IF count IS INITIAL and number GT 0.
+      valid = abap_false.
       result->insert( |{ operation } what?| ).
       result->error_msg( title = |missing object in { operation }|
                          subtitle = operation
@@ -87,12 +89,7 @@ CLASS zcl_axage_action IMPLEMENTATION.
 
     valid = abap_false.
     CLEAR eo_item.
-    IF param1 IS INITIAL.
-      result->insert( |{ operation } what?| ).
-      result->error_msg( title = |{ operation } { param1 } { into_object }|
-                         subtitle = operation
-                         description = |{ operation } what?| ).
-    ELSE.
+    IF mandatory_params( 1 ).
       LOOP AT it_from INTO DATA(from_idx).
         DATA(from) = repository->at_index( from_idx ).
         IF from IS BOUND AND from->name = into_object.

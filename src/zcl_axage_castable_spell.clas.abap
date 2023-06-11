@@ -64,16 +64,13 @@ CLASS ZCL_AXAGE_CASTABLE_SPELL IMPLEMENTATION.
       WHEN 'LUMI'.
         IF player->location->dark = abap_true.
           player->location->dark = abap_false.
-          player->location->state = 'is now illuminated'.
+          player->location->state = 'illuminated'.
           result->add( |{ location->describe( ) }.| ).
         ENDIF.
       WHEN 'PORT'.
         engine->mission_completed = abap_true.
-        result->add( |You go through the portal to the Wizard's Guild.| ).
-        result->add( |Congratulations, you are now a member of the Wizard's Guild.| ).
-        result->success_msg( title = 'Mission completed'
-                             subtitle = 'Portalis, You did it!'
-                             description = |Congratulations, you are now a member of the Wizard's Guild.| ).
+        result->add( |You go through a portal to the Wizard's Guild.| ).
+
       WHEN OTHERS.
         result->add( |This { name } spell is useless.| ).
 

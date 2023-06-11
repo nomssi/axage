@@ -316,38 +316,26 @@ CLASS lcl_look DEFINITION INHERITING FROM zcl_axage_action.
 ENDCLASS.
 
 CLASS lcl_look IMPLEMENTATION.
+" TO DO: Allow variant LOOK AT ...
   METHOD execute.
     DATA item TYPE REF TO zcl_axage_thing.
 
     mandatory_params( 1 ).
+    DATA(things_at_location) = zcl_axage_thing=>merge_index( VALUE #( ( available_things ) ( owned_things ) ) ).
+
     LOOP AT objects INTO param1.
       IF validate( EXPORTING into_object = param1
                              operation = operation
-                             it_from = available_things
+                             it_from = things_at_location
                    IMPORTING eo_item = item ).
-        result->add( |You see { item->describe( ) }| ).
-        details( log = result
-                 location = player->location
-                 object = item ).
-
-        result->success_msg(
-                         title = |look at { param1 }|
-                         subtitle = player->location->name
-                         description = |You looked at the { param1 }| ).
-      ELSEIF validate( EXPORTING into_object = param1
-                                 operation = operation
-                                 it_from = owned_things
-                       IMPORTING eo_item = item ).
-        result->add( |You look at the { param1 } you are carrying.| ).
         result->add( |You see { item->describe( ) }| ).
         details( log = result
                  location = player
                  object = item ).
 
-        result->success_msg(
-                         title = |look at { param1 }|
-                         subtitle = player->location->name
-                         description = |You looked at the { param1 } you are carrying| ).
+        result->success_msg( title = |look at { param1 }|
+                             subtitle = player->location->name
+                             description = |You looked at the { param1 }| ).
       ENDIF.
     ENDLOOP.
   ENDMETHOD.
@@ -365,10 +353,9 @@ CLASS lcl_look IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    log->success_msg(
-                  title = |look at { object->name }|
-                  subtitle = location->name
-                  description = |You look at details of { object->name }| ).
+    log->success_msg( title = |look at { object->name }|
+                      subtitle = location->name
+                      description = |You look at details of { object->name }| ).
 
     LOOP AT container->get_content( )->get_list( ) INTO DATA(content).
       APPEND content->describe( ) TO finds.

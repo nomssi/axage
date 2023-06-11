@@ -16,8 +16,6 @@ CLASS zcl_axage_result DEFINITION
 
     DATA t_msg TYPE tt_msg.
 
-    METHODS reset.
-
     METHODS success_msg
       IMPORTING !title       TYPE string
                 subtitle     TYPE string
@@ -37,9 +35,6 @@ CLASS zcl_axage_result DEFINITION
       IMPORTING textTab TYPE string_table.
 
     METHODS get
-      RETURNING VALUE(textString) TYPE string.
-
-    METHODS last_message
       RETURNING VALUE(textString) TYPE string.
 
   PROTECTED SECTION.
@@ -97,15 +92,4 @@ CLASS zcl_axage_result IMPLEMENTATION.
     INSERT text INTO me->text INDEX 1.
   ENDMETHOD.
 
-  METHOD last_message.
-    CLEAR textstring.
-    DATA(count) = lines( text ).
-    IF count > 0.
-      textstring = text[ count ].
-    ENDIF.
-  ENDMETHOD.
-
-  METHOD reset.
-    CLEAR text.
-  ENDMETHOD.
 ENDCLASS.
