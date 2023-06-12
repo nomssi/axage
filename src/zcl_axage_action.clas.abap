@@ -47,7 +47,6 @@ CLASS zcl_axage_action IMPLEMENTATION.
     valid = abap_true.
     IF count IS INITIAL and number GT 0.
       valid = abap_false.
-      result->insert( |{ operation } what?| ).
       result->error_msg( title = |missing object in { operation }|
                          subtitle = operation
                          description = |{ operation } what?| ).
@@ -55,19 +54,23 @@ CLASS zcl_axage_action IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD new.
-    DATA(classname) = VALUE #( engine->allowed_commands[ action = action ]-execute OPTIONAL ).
+    DATA(command) = VALUE #( engine->allowed_commands[ action = action ] OPTIONAL ).
 
-    IF classname IS INITIAL.
+    IF command-classname IS INITIAL.
       RETURN.
     ENDIF.
 
-    CREATE OBJECT ro_action TYPE (classname)
+    IF command-operation IS INITIAL.
+      command-operation = command-action.
+    ENDIF.
+
+    CREATE OBJECT ro_action TYPE (command-classname)
       EXPORTING objects = params
                 player = engine->player
                 actor_node = engine->actor_node
                 engine = engine
                 result = result
-                operation = action.
+                operation = command-operation.
   ENDMETHOD.
 
   METHOD constructor.
@@ -102,7 +105,6 @@ CLASS zcl_axage_action IMPLEMENTATION.
         DATA(attribute) = |EO_ITEM->CAN_BE_{ to_upper( operation ) }|.
         ASSIGN (attribute) TO <flag>.
         IF sy-subrc = 0 AND <flag> = abap_false.
-          result->add( |{ operation } is not allowed for a { into_object }| ).
           result->error_msg( title = |{ operation } { into_object }|
                              subtitle = player->location->name
                              description = |{ operation } is not allowed for a { into_object }| ).
@@ -110,12 +112,10 @@ CLASS zcl_axage_action IMPLEMENTATION.
           valid = abap_true.
         ENDIF.
       ELSEIF from IS BOUND AND from->get_list( ) IS INITIAL.
-        result->add( |You cannot find { into_object } in { operation }...| ).
         result->error_msg( title = |{ operation } { into_object }|
                            subtitle = player->location->name
                            description = |You cannot find { into_object } for { operation }...| ).
       ELSE.
-        result->add( |There is no { into_object } you can { operation }| ).
         result->error_msg( title = |{ operation } { into_object }|
                            subtitle = player->location->name
                            description = |There is no { into_object } you can { operation }| ).

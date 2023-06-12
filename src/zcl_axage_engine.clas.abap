@@ -6,7 +6,8 @@ CLASS zcl_axage_engine DEFINITION
   PUBLIC SECTION.
     TYPES: BEGIN OF ts_action,
              action  TYPE string,
-             execute TYPE classname,
+             classname TYPE classname,
+             operation TYPE string,    " canonical name
            END OF ts_action.
     TYPES tt_action TYPE SORTED TABLE OF ts_action WITH UNIQUE KEY action.
 
@@ -213,23 +214,23 @@ CLASS ZCL_AXAGE_ENGINE IMPLEMENTATION.
 
     player = new_actor( name = 'PLAYER' descr = '(you)' location = no_exit ).
 
-    allowed_commands = VALUE #( ( action = 'ASK' execute = 'LCL_ASK' )
-                                ( action = 'CAST' execute = 'LCL_COMMAND' )
-                                ( action = 'DROP' execute = 'LCL_DROP' )
-                                ( action = 'DUNK' execute = 'LCL_DUNK' )
+    allowed_commands = VALUE #( ( action = 'ASK' classname = 'LCL_ASK' )
+                                ( action = 'CAST' classname = 'LCL_COMMAND' )
+                                ( action = 'DROP' classname = 'LCL_DROP' )
+                                ( action = 'DUNK' classname = 'LCL_DUNK' )
                                 ( action = 'DOWN' )
                                 ( action = 'EAST' )
                                 ( action = 'INVENTORY' )
                                 ( action = 'LOOK' )
                                 ( action = 'MAP' )
                                 ( action = 'NORTH' )
-                                ( action = 'OPEN' execute = 'LCL_OPEN' )
-                                ( action = 'PICKUP' execute = 'LCL_PICKUP' )
+                                ( action = 'OPEN' classname = 'LCL_OPEN' )
+                                ( action = 'PICKUP' classname = 'LCL_PICKUP' )
                                 ( action = 'SOUTH' )
-                                ( action = 'SPLASH' execute = 'LCL_SPLASH' )
-                                ( action = 'TAKE' execute = 'LCL_PICKUP' )
+                                ( action = 'SPLASH' classname = 'LCL_SPLASH' )
+                                ( action = 'TAKE' classname = 'LCL_PICKUP' operation = 'PICKUP' )
                                 ( action = 'UP' )
-                                ( action = 'WELD' execute = 'LCL_WELD' )
+                                ( action = 'WELD' classname = 'LCL_WELD' )
                                 ( action = 'WEST' ) ).
   ENDMETHOD.
 
@@ -238,10 +239,14 @@ CLASS ZCL_AXAGE_ENGINE IMPLEMENTATION.
     DATA lo_action TYPE REF TO zcl_axage_action.
     executed = abap_false.
 
-    DATA(classname) = VALUE #( allowed_commands[ action = action ]-execute OPTIONAL ).
+    DATA(command) = VALUE #( allowed_commands[ action = action ] OPTIONAL ).
 
-    IF classname IS INITIAL.
+    IF command-classname IS INITIAL.
       RETURN.
+    ENDIF.
+
+    IF command-operation IS INITIAL.
+      command-operation = command-action.  " customizing only checked for the cannonical operation
     ENDIF.
 
     TRY.
@@ -249,13 +254,13 @@ CLASS ZCL_AXAGE_ENGINE IMPLEMENTATION.
 *                                                 action = action
 *                                                 params = params
 *                                                 result = result ).
-        CREATE OBJECT lo_action TYPE (classname)
+        CREATE OBJECT lo_action TYPE (command-classname)
           EXPORTING objects = params
                     player = me->player
                     actor_node = me->actor_node
                     engine = me
                     result = result
-                    operation = action.
+                    operation = command-operation.
 
         IF lo_action IS BOUND.
           lo_action->execute( ).
@@ -461,7 +466,7 @@ CLASS ZCL_AXAGE_ENGINE IMPLEMENTATION.
   METHOD parse_command.
     DATA cmd TYPE string.
 
-    cmd = to_upper( command ).
+    cmd = to_upper( condense( command ) ).
 
     SPLIT cmd AT space INTO action DATA(cmd2).
     SPLIT cmd2 AT space INTO TABLE params.

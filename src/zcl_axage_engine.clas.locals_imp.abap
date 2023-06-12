@@ -47,7 +47,6 @@ CLASS lcl_drop IMPLEMENTATION.
                  IMPORTING eo_item = item ).
       player->delete_by_name( param1 ).
       player->location->add( item ).
-      result->add( |You dropped the { param1 }| ).
       result->success_msg( title = |drop { param1 }|
                            subtitle = player->location->name
                            description = |You dropped the { param1 }| ).
@@ -74,7 +73,6 @@ CLASS lcl_pickup IMPLEMENTATION.
                    IMPORTING eo_item = item ).
         player->add( item ).
         player->location->delete_by_name( param1 ).
-        result->add( |You picked the { param1 } up| ).
         result->success_msg( title = |pickup { param1 }|
                              subtitle = player->location->name
                              description = |You picked the { param1 } up| ).
@@ -111,13 +109,11 @@ CLASS lcl_open IMPLEMENTATION.
       ENDLOOP.
       log->add( |The { box->name } contains:| ).
       log->addtab( finds ).
-      log->add( |You have picked up the contains of the { box->name }.| ).
 
       player->add( content ).
-      log->success_msg(
-                    title = |open { box->name }|
-                    subtitle = player->location->name
-                    description = |You now have to content of the { box->name }| ).
+      log->success_msg( title = |open { box->name }|
+                        subtitle = player->location->name
+                        description = |You now have to content of { box->name }| ).
     ENDIF.
   ENDMETHOD.
 
@@ -316,12 +312,16 @@ CLASS lcl_look DEFINITION INHERITING FROM zcl_axage_action.
 ENDCLASS.
 
 CLASS lcl_look IMPLEMENTATION.
-" TO DO: Allow variant LOOK AT ...
   METHOD execute.
     DATA item TYPE REF TO zcl_axage_thing.
 
     mandatory_params( 1 ).
     DATA(things_at_location) = zcl_axage_thing=>merge_index( VALUE #( ( available_things ) ( owned_things ) ) ).
+
+    " Allow variant LOOK AT without error message
+    IF lines( objects ) > 1 AND objects[ 1 ] = 'AT'.
+      DELETE objects INDEX 1.
+    ENDIF.
 
     LOOP AT objects INTO param1.
       IF validate( EXPORTING into_object = param1
@@ -330,7 +330,7 @@ CLASS lcl_look IMPLEMENTATION.
                    IMPORTING eo_item = item ).
         result->add( |You see { item->describe( ) }| ).
         details( log = result
-                 location = player
+                 location = player->location
                  object = item ).
 
         result->success_msg( title = |look at { param1 }|
@@ -341,8 +341,6 @@ CLASS lcl_look IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD details.
-    DATA finds TYPE string_table.
-
     done = abap_false.
     IF object IS NOT INSTANCE OF zif_axage_openable.
       RETURN.
@@ -358,11 +356,11 @@ CLASS lcl_look IMPLEMENTATION.
                       description = |You look at details of { object->name }| ).
 
     LOOP AT container->get_content( )->get_list( ) INTO DATA(content).
-      APPEND content->describe( ) TO finds.
       location->add( content ).
+      log->success_msg( title = content->name
+                        subtitle = location->name
+                        description = content->describe( ) ).
     ENDLOOP.
-    log->add( |The { object->name } has:| ).
-    log->addtab( finds ).
   ENDMETHOD.
 
 ENDCLASS.

@@ -59,20 +59,6 @@ CLASS ZCL_AXAGE_OPENABLE_THING IMPLEMENTATION.
     me->content = content.
   ENDMETHOD.
 
-
-  METHOD details.
-    DATA(dark) = abap_false.
-    IF location IS INSTANCE OF zcl_axage_room
-      AND CAST zcl_axage_room( location )->dark = abap_true.
-      dark = abap_true.
-    ENDIF.
-
-    IF needed->get_list( ) IS INITIAL AND dark EQ abap_false.
-       me->opened = abap_true.
-    ENDIF.
-  ENDMETHOD.
-
-
   METHOD get_content.
     IF opened = abap_true.
       content = me->content.
@@ -84,6 +70,17 @@ CLASS ZCL_AXAGE_OPENABLE_THING IMPLEMENTATION.
     result = opened.
   ENDMETHOD.
 
+  METHOD details.
+    DATA(dark) = abap_false.
+    IF location IS INSTANCE OF zcl_axage_room
+      AND CAST zcl_axage_room( location )->dark = abap_true.
+      dark = abap_true.
+    ENDIF.
+
+    IF needed->get_list( ) IS INITIAL AND dark EQ abap_false.
+      me->opened = abap_true.
+    ENDIF.
+  ENDMETHOD.
 
   METHOD open.
     result = NEW #( ).
@@ -92,7 +89,7 @@ CLASS ZCL_AXAGE_OPENABLE_THING IMPLEMENTATION.
     LOOP AT needed->get_list( ) INTO DATA(open_with).
       IF things->exists( open_with->name ).
         allowed = abap_true.
-        me->state = |The { name } is now open|.
+        me->state = |You open the { name } using the { open_with->name }|.
         result->add( me->state ).
         me->opened = abap_true.
         EXIT. "from loop

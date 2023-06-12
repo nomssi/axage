@@ -56,6 +56,7 @@ CLASS zcl_axage_result IMPLEMENTATION.
                     subtitle = subtitle
                     description = description
                     group = group ) TO me->t_msg.
+    add( description ).
   ENDMETHOD.
 
   METHOD success_msg.
