@@ -1,7 +1,7 @@
 CLASS zcl_axage_room DEFINITION INHERITING FROM zcl_axage_thing
   PUBLIC
   FINAL
-  CREATE PUBLIC .
+  CREATE PUBLIC.
 
   PUBLIC SECTION.
     DATA north TYPE REF TO zcl_axage_room.

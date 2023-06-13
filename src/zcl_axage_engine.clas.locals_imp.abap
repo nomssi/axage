@@ -10,21 +10,20 @@ ENDCLASS.
 CLASS lcl_command IMPLEMENTATION.
 
   METHOD execute.
-    DATA lo_item TYPE REF TO zcl_axage_thing.
+    DATA lt_item TYPE tt_thing.
 
-    IF validate( EXPORTING into_object = param1
-                           operation = operation
-                           it_from = owned_things
-                 IMPORTING eo_item = lo_item ).
-      IF lo_item IS BOUND.
+    IF validate( EXPORTING it_from = owned_things
+                 IMPORTING et_item = lt_item ).
+      LOOP AT lt_item INTO DATA(lo_item).
         IF lo_item IS INSTANCE OF zif_axage_command.
           CAST zif_axage_command( lo_item )->execute( engine = engine
                                                       result = result ).
         ELSE.
-          result->add( |You cannot use { operation } on { param1 }.| ).
+          result->add( |You cannot use { operation } on { lo_item->name }.| ).
         ENDIF.
-      ELSE.
-        result->add( |You have not learned that yet| ).
+      ENDLOOP.
+      IF sy-subrc NE 0.
+        result->add( |You do not know how to do that (yet?)| ).
       ENDIF.
     ENDIF.
   ENDMETHOD.
@@ -37,19 +36,18 @@ CLASS lcl_drop DEFINITION INHERITING FROM zcl_axage_action.
 ENDCLASS.
 
 CLASS lcl_drop IMPLEMENTATION.
-
   METHOD execute.
-    DATA item TYPE REF TO zcl_axage_thing.
+    DATA lt_item TYPE tt_thing.
 
-    IF validate( EXPORTING into_object = param1
-                           operation = 'drop'
-                           it_from = owned_things
-                 IMPORTING eo_item = item ).
-      player->delete_by_name( param1 ).
-      player->location->add( item ).
-      result->success_msg( title = |drop { param1 }|
-                           subtitle = player->location->name
-                           description = |You dropped the { param1 }| ).
+    IF validate( EXPORTING it_from = owned_things
+                 IMPORTING et_item = lt_item ).
+      LOOP AT lt_item INTO DATA(lo_item).
+        player->delete_by_name( lo_item->name ).
+        player->location->add( lo_item ).
+        result->success_msg( title = |drop { lo_item->name }|
+                             subtitle = player->location->name
+                             description = |You dropped the { lo_item->name }| ).
+      ENDLOOP.
     ENDIF.
   ENDMETHOD.
 
@@ -62,22 +60,18 @@ ENDCLASS.
 
 CLASS lcl_pickup IMPLEMENTATION.
   METHOD execute.
-    DATA item TYPE REF TO zcl_axage_thing.
+    DATA lt_item TYPE tt_thing.
 
-    mandatory_params( 1 ).
-
-    LOOP AT objects INTO param1.
-      IF validate( EXPORTING into_object = param1
-                             operation = operation
-                             it_from = available_things
-                   IMPORTING eo_item = item ).
-        player->add( item ).
-        player->location->delete_by_name( param1 ).
-        result->success_msg( title = |pickup { param1 }|
+    IF validate( EXPORTING it_from = available_things
+                 IMPORTING et_item = lt_item ).
+      LOOP AT lt_item INTO DATA(lo_item).
+        player->add( lo_item ).
+        player->location->delete_by_name( lo_item->name ).
+        result->success_msg( title = |pickup { lo_item->name }|
                              subtitle = player->location->name
-                             description = |You picked the { param1 } up| ).
-      ENDIF.
-    ENDLOOP.
+                             description = |You picked the { lo_item->name } up| ).
+      ENDLOOP.
+    ENDIF.
   ENDMETHOD.
 
 ENDCLASS.
@@ -118,19 +112,17 @@ CLASS lcl_open IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD execute.
-    DATA item TYPE REF TO zcl_axage_thing.
+    DATA lt_item TYPE tt_thing.
 
-    IF validate( EXPORTING into_object = param1
-                           operation = 'open'
-                           it_from = zcl_axage_thing=>merge_index( VALUE #( ( owned_things )
+    IF validate( EXPORTING it_from = zcl_axage_thing=>merge_index( VALUE #( ( owned_things )
                                                                             ( available_things ) ) )
-                 IMPORTING eo_item = item ).
-      IF item IS NOT BOUND.
-        result->add( |There is no { param1 } to open| ).
-      ELSEIF NOT empty( log = result
-                        box = item ).
-        result->add( |{ item->name } cannot be opened!| ).
-      ENDIF.
+                 IMPORTING et_item = lt_item ).
+      LOOP AT lt_item INTO DATA(lo_item).
+        IF NOT empty( log = result
+                      box = lo_item ).
+          result->add( |{ lo_item->name } cannot be opened!| ).
+        ENDIF.
+      ENDLOOP.
     ENDIF.
   ENDMETHOD.
 
@@ -159,22 +151,23 @@ CLASS lcl_ask IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD execute.
-    DATA(name) = param1.
     DATA(actors_in_the_room) = filter_actors( location = player->location ).
 
     IF lines( actors_in_the_room ) = 0.
       result->add( 'There is no one here to ask...' ).
     ELSE.
-      IF name IS INITIAL.
-        result->add( 'Whom do you want to ask?' ).
-      ELSE.
-        LOOP AT actors_in_the_room INTO DATA(actor) WHERE table_line->nameuppercase = name.
+      LOOP AT objects INTO DATA(actor_name).
+        LOOP AT actors_in_the_room INTO DATA(actor) WHERE table_line->nameuppercase = actor_name.
           result->addtab( actor->speak( ) ).
         ENDLOOP.
         IF sy-subrc NE 0.
-          result->add( |{ name } is not here| ).
+          result->add( |{ actor_name } is not here| ).
         ENDIF.
+      ENDLOOP..
+      IF sy-subrc IS NOT INITIAL.
+        result->add( 'Whom do you want to ask?' ).
       ENDIF.
+
     ENDIF.
   ENDMETHOD.
 ENDCLASS.
@@ -186,37 +179,33 @@ ENDCLASS.
 
 CLASS lcl_weld IMPLEMENTATION.
   METHOD execute.
-    DATA(object2) = VALUE #( objects[ 2 ] OPTIONAL ).
 
-    IF validate( EXPORTING into_object = param1
-                           operation = 'weld'
-                           it_from = owned_things ).
-      IF validate( into_object = object2
-                   it_from = owned_things
-                   operation = 'weld into' ).
+    IF validate( it_from = owned_things
+                 number_of_parameters = 2 ).
         DATA(location) = player->location.
+        DATA(object1) = objects[ 1 ].
+        DATA(object2) = objects[ 2 ].
 
         " can_weld_at_this_location ?
-        LOOP AT location->get_list( ) INTO DATA(thing)
-           WHERE table_line->can_weld = abap_true.
+        LOOP AT location->get_list( ) INTO DATA(thing).
+          CHECK line_exists( thing->capable_of[ table_line = zcl_axage=>c_action_weld ] ).
 
-          result->add( |You have welded {  param1 } to {  object2 }| ).
-          DATA(new_object_name) = |{ param1 }+{  object2 }|.
+          result->add( |You have welded {  object1 } to {  object2 }| ).
+          DATA(new_object_name) = |{ object1 }+{  object2 }|.
           DATA(new_object) = zcl_axage_thing=>new( name = new_object_name
-                                                   descr = 'welded'
+                                                   descr = |{ object1 } welded to { object2 }|
                                                    repository = engine->repository ).
           " Add new object object1+object2
           player->add( new_object ).
 
           " Remove 2 objects
-          player->delete_by_name( param1 ).
+          player->delete_by_name( object1 ).
           player->delete_by_name( object2 ).
 
           RETURN.
         ENDLOOP..
 
         result->add( 'There is no Welding Torch here...' ).
-      ENDIF.
     ENDIF.
 
   ENDMETHOD.
@@ -229,27 +218,16 @@ CLASS lcl_splash DEFINITION INHERITING FROM zcl_axage_action.
 ENDCLASS.
 
 CLASS lcl_splash IMPLEMENTATION.
-  METHOD execute.
-    DATA item_subject TYPE REF TO zcl_axage_thing.
-    DATA item_object TYPE REF TO zcl_axage_thing.
 
-    DATA(splash_subject) = param1.
-    DATA(splash_object) = VALUE #( objects[ 2 ] OPTIONAL ).
+  METHOD execute.
     DATA(things_at_location) = zcl_axage_thing=>merge_index( VALUE #( ( owned_things ) ( available_things ) ) ).
 
-    IF validate( EXPORTING into_object = splash_subject
-                           it_from = things_at_location
-                           operation = 'splash'
-                 IMPORTING eo_item = item_subject ).
+    IF validate( it_from = things_at_location
+                  number_of_parameters = 2 ).
+      DATA(splash_subject) = objects[ 1 ].
+      DATA(splash_object) = objects[ 2 ].
 
-      IF validate( EXPORTING into_object = splash_object
-                             it_from = things_at_location
-                             operation = 'splash_into'
-                   IMPORTING eo_item = item_object ).
-        result->add( |You have splashed { splash_subject } on { splash_object }| ).
-      ELSEIF item_subject IS BOUND.
-        result->add( |You cannot splash { splash_subject } into { splash_object }| ).
-      ENDIF.
+      result->add( |You have splashed { splash_subject } on { splash_object }| ).
 
     ENDIF.
 
@@ -263,38 +241,16 @@ CLASS lcl_dunk DEFINITION INHERITING FROM zcl_axage_action.
 ENDCLASS.
 
 CLASS lcl_dunk IMPLEMENTATION.
-  METHOD execute.
-    DATA item_subject TYPE REF TO zcl_axage_thing.
-    DATA item_object TYPE REF TO zcl_axage_thing.
 
-    DATA(dunk_subject) = param1.
-    DATA(dunk_object) = VALUE #( objects[ 2 ] OPTIONAL ).
+  METHOD execute.
     DATA(things_at_location) = zcl_axage_thing=>merge_index( VALUE #( ( owned_things ) ( available_things ) ) ).
 
-    IF validate( EXPORTING into_object = dunk_subject
-                           it_from = things_at_location
-                           operation = 'dunk'
-                 IMPORTING eo_item = item_subject ).
+    IF validate( it_from = things_at_location
+                 number_of_parameters = 2 ).
+      DATA(dunk_subject) = objects[ 1 ].
+      DATA(dunk_object) = objects[ 2 ].
 
-      IF validate( EXPORTING into_object = dunk_object
-                             it_from = things_at_location
-                             operation = 'dunk_into'
-                   IMPORTING eo_item = item_object ).
-        IF item_object IS BOUND AND item_object->can_be_dunk_into = abap_true.
-
-          result->add( |You have dunked the { dunk_subject } into the { dunk_object }| ).
-*          DATA(new_object_name) = |WET { param1 }|.
-*
-*          " Add new object object1+object2
-*          owned_things->add( available_things->get( new_object_name ) ).
-
-          " Remove 1 objects
-*          owned_things->delete( param1 ).
-
-        ELSE.
-          result->add( |You cannot dunk into { dunk_object }| ).
-        ENDIF.
-      ENDIF.
+      result->add( |You have dunked the { dunk_subject } into the { dunk_object }| ).
 
     ENDIF.
 
@@ -313,9 +269,8 @@ ENDCLASS.
 
 CLASS lcl_look IMPLEMENTATION.
   METHOD execute.
-    DATA item TYPE REF TO zcl_axage_thing.
+    DATA lt_item TYPE tt_thing.
 
-    mandatory_params( 1 ).
     DATA(things_at_location) = zcl_axage_thing=>merge_index( VALUE #( ( available_things ) ( owned_things ) ) ).
 
     " Allow variant LOOK AT without error message
@@ -323,21 +278,19 @@ CLASS lcl_look IMPLEMENTATION.
       DELETE objects INDEX 1.
     ENDIF.
 
-    LOOP AT objects INTO param1.
-      IF validate( EXPORTING into_object = param1
-                             operation = operation
-                             it_from = things_at_location
-                   IMPORTING eo_item = item ).
-        result->add( |You see { item->describe( ) }| ).
+    IF validate( EXPORTING it_from = things_at_location
+                 IMPORTING et_item = lt_item ).
+      LOOP AT lt_item INTO DATA(lo_item).
+        result->add( |You see { lo_item->describe( ) }| ).
         details( log = result
                  location = player->location
-                 object = item ).
+                 object = lo_item ).
 
-        result->success_msg( title = |look at { param1 }|
+        result->success_msg( title = |look at { lo_item->name }|
                              subtitle = player->location->name
-                             description = |You looked at the { param1 }| ).
-      ENDIF.
-    ENDLOOP.
+                             description = |You looked at the { lo_item->name }| ).
+      ENDLOOP.
+    ENDIF.
   ENDMETHOD.
 
   METHOD details.

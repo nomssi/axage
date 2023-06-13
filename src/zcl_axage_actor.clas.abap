@@ -49,17 +49,23 @@ CLASS ZCL_AXAGE_ACTOR IMPLEMENTATION.
     my_status = sentences.
   ENDMETHOD.
 
-
   METHOD constructor.
-    super->constructor( type = c_type_actor repository = repository name = name state = state descr = descr prefix = prefix ).
-    me->can_be_pickup      = abap_false.
-    me->can_be_drop        = abap_false.
+    super->constructor( type = c_type_actor
+                        repository = repository
+                        name = name
+                        state = state
+                        descr = descr
+                        prefix = prefix
 
-    me->can_weld           = abap_false.
-    me->can_be_weld        = abap_false.
-    me->can_be_open        = abap_false.
-    me->can_be_splash_into = abap_true.
-    me->can_be_dunk_into   = abap_false.
+                        can_be_pickup      = abap_false
+                        can_be_drop        = abap_false
+
+                        can_be_weld        = abap_false
+                        can_be_open        = abap_false
+                        can_be_dunk_into   = abap_false
+
+                        can_be_splash_into = abap_true
+                        can_weld           = abap_false ).
     me->active = active.
     nameUpperCase = to_upper( me->name ).
   ENDMETHOD.

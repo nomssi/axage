@@ -13,7 +13,7 @@ CLASS zcl_axage_castable_spell DEFINITION
       IMPORTING !name              TYPE clike
                 descr              TYPE clike
                 !state             TYPE clike     OPTIONAL
-                prefix             TYPE string DEFAULT zcl_axage_thing=>c_prefix
+                prefix             TYPE string DEFAULT zcl_axage=>c_prefix
                 repository         TYPE REF TO zcl_axage_repository
                 can_be_pickup      TYPE abap_bool DEFAULT abap_true
                 can_be_drop        TYPE abap_bool DEFAULT  abap_true
@@ -30,8 +30,6 @@ ENDCLASS.
 
 
 CLASS ZCL_AXAGE_CASTABLE_SPELL IMPLEMENTATION.
-
-
   METHOD constructor.
     super->constructor(
       name  = name
@@ -46,7 +44,7 @@ CLASS ZCL_AXAGE_CASTABLE_SPELL IMPLEMENTATION.
          can_be_splash_into = can_be_splash_into
          can_be_dunk_into = can_be_dunk_into
          repository = repository ).
-    me->zif_axage_command~category = zif_axage_command=>c_command_spell.
+    zif_axage_command~category = zif_axage_command=>c_spell.
   ENDMETHOD.
 
 
@@ -54,7 +52,7 @@ CLASS ZCL_AXAGE_CASTABLE_SPELL IMPLEMENTATION.
     DATA(player) = engine->player.
     DATA(location) = player->location.
 
-    IF zif_axage_command~category NE zif_axage_command=>c_command_spell.
+    IF zif_axage_command~category NE zif_axage_command=>c_spell.
       result->add( |{ name } is not a spell.| ).
       RETURN.
     ENDIF.

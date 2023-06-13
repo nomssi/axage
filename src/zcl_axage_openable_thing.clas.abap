@@ -16,7 +16,7 @@ CLASS zcl_axage_openable_thing DEFINITION
       IMPORTING !name              TYPE clike
                 descr              TYPE clike
                 !state             TYPE clike     OPTIONAL
-                prefix             TYPE string DEFAULT zcl_axage_thing=>c_prefix
+                prefix             TYPE string DEFAULT zcl_axage=>c_prefix
                 needed             TYPE REF TO zcl_axage_thing
                 content            TYPE REF TO zcl_axage_thing
                 repository         TYPE REF TO zcl_axage_repository
@@ -31,8 +31,9 @@ CLASS zcl_axage_openable_thing DEFINITION
     DATA needed TYPE REF TO zcl_axage_thing.
 
   PROTECTED SECTION.
-    DATA opened TYPE abap_bool.
+    DATA opened  TYPE abap_bool.
     DATA content TYPE REF TO zcl_axage_thing.
+
   PRIVATE SECTION.
 ENDCLASS.
 

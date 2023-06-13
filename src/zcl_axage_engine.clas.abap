@@ -4,13 +4,6 @@ CLASS zcl_axage_engine DEFINITION
   CREATE PUBLIC.
 
   PUBLIC SECTION.
-    TYPES: BEGIN OF ts_action,
-             action  TYPE string,
-             classname TYPE classname,
-             operation TYPE string,    " canonical name
-           END OF ts_action.
-    TYPES tt_action TYPE SORTED TABLE OF ts_action WITH UNIQUE KEY action.
-
     INTERFACES if_serializable_object.
 
     METHODS constructor IMPORTING repository TYPE REF TO zcl_axage_repository.
@@ -21,11 +14,11 @@ CLASS zcl_axage_engine DEFINITION
       RETURNING VALUE(ro_thing) TYPE REF TO zcl_axage_thing.
 
     METHODS new_object
-      IMPORTING !type              TYPE zcl_axage_thing=>tv_type DEFAULT zcl_axage_thing=>c_type_thing
+      IMPORTING !type              TYPE zcl_axage=>tv_type DEFAULT zcl_axage=>c_type_thing
                 !name              TYPE clike
                 descr              TYPE clike
                 !state             TYPE clike                    OPTIONAL
-                !prefix            TYPE string                   DEFAULT zcl_axage_thing=>c_prefix
+                !prefix            TYPE string                   DEFAULT zcl_axage=>c_prefix
                 can_be_pickup      TYPE abap_bool                DEFAULT abap_true
                 can_be_drop        TYPE abap_bool                DEFAULT abap_true
                 can_weld           TYPE abap_bool                DEFAULT abap_false
@@ -39,7 +32,7 @@ CLASS zcl_axage_engine DEFINITION
       IMPORTING !name              TYPE clike
                 descr              TYPE clike
                 !state             TYPE clike                    OPTIONAL
-                !prefix            TYPE string                   DEFAULT zcl_axage_thing=>c_prefix
+                !prefix            TYPE string                   DEFAULT zcl_axage=>c_prefix
       RETURNING VALUE(ro_thing)    TYPE REF TO zcl_axage_thing.
 
     METHODS new_room
@@ -78,7 +71,7 @@ CLASS zcl_axage_engine DEFINITION
     DATA repository        TYPE REF TO zcl_axage_repository.
     DATA no_exit           TYPE REF TO zcl_axage_room.
     DATA mission_completed TYPE abap_bool.
-    DATA allowed_commands  TYPE tt_action.
+    DATA allowed_commands TYPE zcl_axage=>tt_command.
 
   PROTECTED SECTION.
     METHODS propose_command
@@ -201,8 +194,6 @@ CLASS ZCL_AXAGE_ENGINE IMPLEMENTATION.
     me->repository = repository.
     no_exit = NEW zcl_axage_room( name = 'No Exit'
                                   descr = 'There is no exit in this direction...'
-                                  " dark = abap_false
-                                  " image_data = space
                                   state = space
                                   repository = repository
                                   no_exit = no_exit ).
@@ -214,23 +205,24 @@ CLASS ZCL_AXAGE_ENGINE IMPLEMENTATION.
 
     player = new_actor( name = 'PLAYER' descr = '(you)' location = no_exit ).
 
-    allowed_commands = VALUE #( ( action = 'ASK' classname = 'LCL_ASK' )
-                                ( action = 'CAST' classname = 'LCL_COMMAND' )
-                                ( action = 'DROP' classname = 'LCL_DROP' )
-                                ( action = 'DUNK' classname = 'LCL_DUNK' )
-                                ( action = 'DOWN' )
-                                ( action = 'EAST' )
-                                ( action = 'INVENTORY' )
-                                ( action = 'LOOK' )
-                                ( action = 'MAP' )
-                                ( action = 'NORTH' )
-                                ( action = 'OPEN' classname = 'LCL_OPEN' )
-                                ( action = 'PICKUP' classname = 'LCL_PICKUP' )
-                                ( action = 'SOUTH' )
-                                ( action = 'SPLASH' classname = 'LCL_SPLASH' )
-                                ( action = 'TAKE' classname = 'LCL_PICKUP' operation = 'PICKUP' )
-                                ( action = 'UP' )
-                                ( action = 'WELD' classname = 'LCL_WELD' )
+
+    allowed_commands = VALUE #( ( action = zcl_axage=>c_action_ASK classname = 'LCL_ASK' )
+                                ( action = zcl_axage=>c_action_CAST classname = 'LCL_COMMAND' )
+                                ( action = zcl_axage=>c_action_DROP classname = 'LCL_DROP' )
+                                ( action = zcl_axage=>c_action_DUNK classname = 'LCL_DUNK' )
+                                ( action = zcl_axage=>c_action_DOWN )
+                                ( action = zcl_axage=>c_action_EAST )
+                                ( action = zcl_axage=>c_action_INVENTORY )
+                                ( action = zcl_axage=>c_action_LOOK )
+                                ( action = zcl_axage=>c_action_MAP )
+                                ( action = zcl_axage=>c_action_NORTH )
+                                ( action = zcl_axage=>c_action_OPEN classname = 'LCL_OPEN' )
+                                ( action = zcl_axage=>c_action_PICKUP classname = 'LCL_PICKUP' )
+                                ( action = zcl_axage=>c_action_SOUTH )
+                                ( action = zcl_axage=>c_action_SPLASH classname = 'LCL_SPLASH' )
+                                ( action = zcl_axage=>c_action_TAKE classname = 'LCL_PICKUP' operation = 'PICKUP' )
+                                ( action = zcl_axage=>c_action_UP )
+                                ( action = zcl_axage=>c_action_WELD classname = 'LCL_WELD' )
                                 ( action = 'WEST' ) ).
   ENDMETHOD.
 
@@ -276,10 +268,11 @@ CLASS ZCL_AXAGE_ENGINE IMPLEMENTATION.
     DATA(your_things) = player->get_list( ).
 
     IF lines( your_things ) IS INITIAL.
-      result->add( |Your inventory is empty...| ).
+      DATA(msg) = |Your inventory is empty...|.
     ELSE.
-      result->add( |You are carrying:| ).
+      msg = |You are carrying:|.
     ENDIF.
+    result->add( msg ).
     LOOP AT your_things INTO DATA(thing_inv).
       result->add( thing_inv->describe( with_state = abap_false ) ).
     ENDLOOP.
@@ -332,10 +325,11 @@ CLASS ZCL_AXAGE_ENGINE IMPLEMENTATION.
           ELSE.
             DATA(variant) = propose_command( token = action ).
             IF variant IS NOT INITIAL.
-              result->add( |You cannot { action }. Do you want to { variant }?| ).
+              DATA(msg) = |You cannot { action }|.
             ELSE.
-              result->add( |You cannot { action }| ).
+              msg = |You cannot { action }. Do you want to { variant }?|.
             ENDIF.
+            result->add( msg ).
           ENDIF.
       ENDCASE.
     ENDIF.
