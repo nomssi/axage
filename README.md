@@ -1,40 +1,55 @@
 # AXAGE ~ ABAP teXt Adventure Game Engine
-![axage-logo](https://github.com/Ennowulff/axage/blob/8c7adcaf8e7b0af5f697b1f021c5cf16fd4e9608/img/axage_logo.png)
+![axage-wizard](https://github.com/nomssi/axage/blob/8c7adcaf8e7b0af5f697b1f021c5cf16fd4e9608/img/living_room.jpg)
 
 # Game engine
-A simple game engine as base for text adventures
+A simple game engine as base for text adventures, with a wizard's adventure as an example
 
 # maps
-define rooms with exits to north, east, south and west
+define rooms with exits to north, east, south and west, up and down
 
 # actors
 define actors 
 
 # things
-define things that can be found, taken or dropped.
+define things that can be found, pickup (taken) or dropped.
 
 ## openable things
 create things that can be opened using special things
 
-# parser
-use simple two-word commands to navigate in the world
+## implement new operations (commands)
+e.g. cast a spell, splash, weld
 
-## commands
+# parser
+use simple syntax (one command, following by zero, one or more parameters) to navigate in the world
+
+## navigation commands
 ```
 N or NORTH        Go to the room on the north side
 E or EAST         Go to the room on the east side
 S or SOUTH        Go to the room on the south side
 W or WEST         Go to the room on the west side
-MAP               show floor plan/ world
+UP                Go to the room upstairs
+DOWN              Go to the room downstairs
+MAP               show floor plan/game world
+```
 
+## Game standard commands
+```
 INV or INVENTARY  Show everything you carry
 LOOK              Look what''s in the room
 LOOK <object>     Have a closer look at the object in the room or in your inventory
 TAKE <object>     Take object in the room
 DROP <object>     Drop an object that you carry
-OPEN <object>     Open something that is in the room
 
+OPEN <object>     Open something that is in the room
 ASK <person>      Ask a person to talk to you
+```
+
+## Game custom commands
+```
+SPLASH
+WELD
+
 ```
 
 # class diagram
@@ -46,8 +61,22 @@ https://mermaid-js.github.io/mermaid/#/classDiagram
 classDiagram
   thing <|-- openable_thing
   thing <|-- room
-  
-  class thing{ 
+  thing <|-- actor
+  thing <|-- map
+  repository <|-- engine
+      
+class repository{   
+    +add()
+    +add_index()  
+  }
+
+class engine{   
+    +add_custom_command()
+    +cmd_look()      
+    +interprete()  
+  }
+
+class thing{ 
     +name
     +description 
     +constructor()
@@ -61,7 +90,8 @@ classDiagram
     +open()
     +is_open()
     }
-    
+
+  
   class room{
     +north
     +east
