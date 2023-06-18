@@ -64,6 +64,14 @@ classDiagram
   thing <|-- actor
   thing <|-- map
   repository <|-- engine
+  action <|-- command
+  command <|-- inventory
+  command <|-- move
+  move <|-- drop
+  move <|-- pickup
+command <|-- open
+command <|-- ask
+command <|-- look
       
 class repository{   
     +add()
@@ -75,6 +83,15 @@ class engine{
     +cmd_look()      
     +interprete()  
   }
+
+class action{ 
+    +execute()
+    #validate()
+    }
+
+class command{ 
+    +execute()
+    }
 
 class thing{ 
     +name
