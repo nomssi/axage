@@ -1,5 +1,7 @@
 # AXAGE ~ ABAP teXt Adventure Game Engine
-![axage-wizard](https://github.com/nomssi/axage/blob/main/img/living_room.jpg)
+![axage-living](https://github.com/nomssi/axage/blob/main/img/living_room.jpg)
+![axage-garden](https://github.com/nomssi/axage/blob/main/img/garden.jpg)
+![axage-attic](https://github.com/nomssi/axage/blob/main/img/attic.jpg)
 
 # Game engine
 A simple game engine as base for text adventures, with a wizard's adventure as an example
