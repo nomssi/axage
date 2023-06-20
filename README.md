@@ -6,6 +6,8 @@
 # Game engine
 a wizard's adventure game based on a fork of a simple game engine (AXAGE) and abap2UI5. 
 
+The goal of the game is to obtain three magical items: the Orb of Sunlight, the Potion of Infinite Stars, and the Staff of Eternal Moon. These items need to be combined to open a portal to the Wizard’s Guild where the apprentice will finally be recognized as a full wizard.
+
 # maps
 define rooms with exits to north, east, south and west, up and down
 
