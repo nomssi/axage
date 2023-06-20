@@ -1,10 +1,10 @@
-# AXAGE ~ ABAP teXt Adventure Game Engine
+# The Quest ~ Trial of a Wizard's Guild Aspirant
 ![axage-living](https://github.com/nomssi/axage/blob/main/img/living_room.jpg)
 ![axage-garden](https://github.com/nomssi/axage/blob/main/img/garden.jpg)
 ![axage-attic](https://github.com/nomssi/axage/blob/main/img/attic.jpg)
 
 # Game engine
-a wizard's adventure game based on a fork of a simple game engine (AXAGE) and abap2UI5. 
+a wizard's adventure game based on a fork of the AXAGE game engine (ABAP teXt Adventure Game Engine) and abap2UI5. 
 
 The goal of the game is to obtain three magical items: the Orb of Sunlight, the Potion of Infinite Stars, and the Staff of Eternal Moon. These items need to be combined to open a portal to the Wizard’s Guild where the apprentice will finally be recognized as a full wizard.
 
