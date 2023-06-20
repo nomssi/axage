@@ -4,7 +4,7 @@
 ![axage-attic](https://github.com/nomssi/axage/blob/main/img/attic.jpg)
 
 # Game engine
-A simple game engine as base for text adventures, with a wizard's adventure as an example
+a wizard's adventure game based on a fork of a simple game engine (AXAGE) and abap2UI5. 
 
 # maps
 define rooms with exits to north, east, south and west, up and down
