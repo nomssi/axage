@@ -3,7 +3,7 @@
  <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
   <asx:values>
    <DEVC>
-    <CTEXT>ABAP teXt Adventure Game Engine</CTEXT>
+    <CTEXT>ABAP teXt Adventure Game Engine Example Games with UI</CTEXT>
    </DEVC>
   </asx:values>
  </asx:abap>
