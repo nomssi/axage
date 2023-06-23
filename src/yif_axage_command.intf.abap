@@ -1,5 +1,5 @@
 INTERFACE yif_axage_command
-  PUBLIC.
+  PUBLIC .
   TYPES tv_category TYPE string.
   CONSTANTS:
     c_open TYPE tv_category VALUE 'TAKE_FROM_BOX',

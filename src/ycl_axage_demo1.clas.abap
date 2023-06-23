@@ -110,7 +110,7 @@ CLASS YCL_AXAGE_DEMO1 IMPLEMENTATION.
 
   METHOD INTERPRETE.
     result = engine->interprete( command ).
-    result->add( |You are in the { engine->player->location->name }.| ).
-    engine->get_inventory( result ).
+    result->add( |You are in { engine->player->location->description }| ).
+    engine->player->location->look_around( result ).
   ENDMETHOD.
 ENDCLASS.

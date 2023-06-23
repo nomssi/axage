@@ -62,6 +62,21 @@ CLASS YCL_AXAGE_ACTION IMPLEMENTATION.
     me->engine = engine.
   ENDMETHOD.
 
+
+  METHOD error.
+    log->error_msg( title = |{ operation } { concat_lines_of( table = objects sep = ` ` ) }|
+                    subtitle = engine->player->location->name
+                    description = description ).
+  ENDMETHOD.
+
+
+  METHOD info.
+    log->info_msg( title = |{ operation } { concat_lines_of( table = objects sep = ` ` ) }|
+                   subtitle = engine->player->location->name
+                   description = description ).
+  ENDMETHOD.
+
+
   METHOD mandatory_params.
     DATA(count) = lines( objects ).
     valid = abap_true.
@@ -75,6 +90,7 @@ CLASS YCL_AXAGE_ACTION IMPLEMENTATION.
       error( description = |missing object in { description }|  ).
     ENDIF.
   ENDMETHOD.
+
 
   METHOD process.
     DATA lo_action TYPE REF TO ycl_axage_action.
@@ -123,6 +139,7 @@ CLASS YCL_AXAGE_ACTION IMPLEMENTATION.
     ENDTRY.
   ENDMETHOD.
 
+
   METHOD propose_command.
     TYPES: BEGIN OF distance,
              text TYPE string,
@@ -151,6 +168,14 @@ CLASS YCL_AXAGE_ACTION IMPLEMENTATION.
     ENDLOOP.
     variant = VALUE #( distances[ 1 ]-text OPTIONAL ).
   ENDMETHOD.
+
+
+  METHOD success.
+    log->success_msg( title = |{ operation } { concat_lines_of( table = objects sep = ` ` ) }|
+                      subtitle = engine->player->location->name
+                      description = description ).
+  ENDMETHOD.
+
 
   METHOD validate.
     DATA lo_item TYPE REF TO ycl_axage_thing.
@@ -196,23 +221,6 @@ CLASS YCL_AXAGE_ACTION IMPLEMENTATION.
     ENDLOOP.
   ENDMETHOD.
 
-  METHOD error.
-    log->error_msg( title = |{ operation } { concat_lines_of( table = objects sep = ` ` ) }|
-                    subtitle = engine->player->location->name
-                    description = description ).
-  ENDMETHOD.
-
-  METHOD info.
-    log->info_msg( title = |{ operation } { concat_lines_of( table = objects sep = ` ` ) }|
-                   subtitle = engine->player->location->name
-                   description = description ).
-  ENDMETHOD.
-
-  METHOD success.
-    log->success_msg( title = |{ operation } { concat_lines_of( table = objects sep = ` ` ) }|
-                      subtitle = engine->player->location->name
-                      description = description ).
-  ENDMETHOD.
 
   METHOD warning.
     log->warning_msg( title = |{ operation } { concat_lines_of( table = objects sep = ` ` ) }|
