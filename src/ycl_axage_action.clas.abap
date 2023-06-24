@@ -5,7 +5,8 @@ CLASS ycl_axage_action DEFINITION
   PUBLIC SECTION.
     TYPES tt_thing TYPE STANDARD TABLE OF REF TO ycl_axage_thing WITH EMPTY KEY.
 
-    METHODS execute ABSTRACT.
+    METHODS execute  ABSTRACT
+      RETURNING VALUE(processed) TYPE abap_bool.
 
     CLASS-METHODS propose_command
       IMPORTING token            TYPE string
@@ -62,21 +63,6 @@ CLASS YCL_AXAGE_ACTION IMPLEMENTATION.
     me->engine = engine.
   ENDMETHOD.
 
-
-  METHOD error.
-    log->error_msg( title = |{ operation } { concat_lines_of( table = objects sep = ` ` ) }|
-                    subtitle = engine->player->location->name
-                    description = description ).
-  ENDMETHOD.
-
-
-  METHOD info.
-    log->info_msg( title = |{ operation } { concat_lines_of( table = objects sep = ` ` ) }|
-                   subtitle = engine->player->location->name
-                   description = description ).
-  ENDMETHOD.
-
-
   METHOD mandatory_params.
     DATA(count) = lines( objects ).
     valid = abap_true.
@@ -90,7 +76,6 @@ CLASS YCL_AXAGE_ACTION IMPLEMENTATION.
       error( description = |missing object in { description }|  ).
     ENDIF.
   ENDMETHOD.
-
 
   METHOD process.
     DATA lo_action TYPE REF TO ycl_axage_action.
@@ -130,15 +115,13 @@ CLASS YCL_AXAGE_ACTION IMPLEMENTATION.
                     operation = command-operation.
 
         IF lo_action IS BOUND.
-          lo_action->execute( ).
-          executed = abap_true.
+          executed = lo_action->execute( ).
         ENDIF.
         " cx_sy_create_object_error.
       CATCH cx_root INTO DATA(lx_error).
         log->add( lx_error->get_text( ) ).
     ENDTRY.
   ENDMETHOD.
-
 
   METHOD propose_command.
     TYPES: BEGIN OF distance,
@@ -168,14 +151,6 @@ CLASS YCL_AXAGE_ACTION IMPLEMENTATION.
     ENDLOOP.
     variant = VALUE #( distances[ 1 ]-text OPTIONAL ).
   ENDMETHOD.
-
-
-  METHOD success.
-    log->success_msg( title = |{ operation } { concat_lines_of( table = objects sep = ` ` ) }|
-                      subtitle = engine->player->location->name
-                      description = description ).
-  ENDMETHOD.
-
 
   METHOD validate.
     DATA lo_item TYPE REF TO ycl_axage_thing.
@@ -221,6 +196,23 @@ CLASS YCL_AXAGE_ACTION IMPLEMENTATION.
     ENDLOOP.
   ENDMETHOD.
 
+  METHOD error.
+    log->error_msg( title = |{ operation } { concat_lines_of( table = objects sep = ` ` ) }|
+                    subtitle = engine->player->location->name
+                    description = description ).
+  ENDMETHOD.
+
+  METHOD info.
+    log->info_msg( title = |{ operation } { concat_lines_of( table = objects sep = ` ` ) }|
+                   subtitle = engine->player->location->name
+                   description = description ).
+  ENDMETHOD.
+
+  METHOD success.
+    log->success_msg( title = |{ operation } { concat_lines_of( table = objects sep = ` ` ) }|
+                      subtitle = engine->player->location->name
+                      description = description ).
+  ENDMETHOD.
 
   METHOD warning.
     log->warning_msg( title = |{ operation } { concat_lines_of( table = objects sep = ` ` ) }|

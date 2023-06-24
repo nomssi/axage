@@ -4,7 +4,6 @@
   <asx:values>
    <DEVC>
     <CTEXT>ABAP teXt Adventure Game Engine Example Games with UI</CTEXT>
-    <TPCLASS>X</TPCLASS>
    </DEVC>
   </asx:values>
  </asx:abap>

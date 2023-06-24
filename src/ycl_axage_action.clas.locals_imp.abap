@@ -12,12 +12,14 @@ CLASS lcl_command IMPLEMENTATION.
   METHOD execute.
     DATA lt_item TYPE tt_thing.
 
+    processed = abap_false.
     IF validate( EXPORTING it_from = engine->player->index_list
                  IMPORTING et_item = lt_item ).
       LOOP AT lt_item INTO DATA(lo_item).
         IF lo_item IS INSTANCE OF yif_axage_command.
           CAST yif_axage_command( lo_item )->execute( engine = engine
                                                       log = log ).
+          processed = abap_true.
         ELSE.
           warning( |You cannot use { operation } on { lo_item->name }.| ).
         ENDIF.
@@ -42,6 +44,7 @@ CLASS lcl_inventory IMPLEMENTATION.
 
     DATA(your_things) = engine->player->get_list( ).
 
+    processed = abap_true.
     IF lines( your_things ) IS INITIAL.
       APPEND |Your inventory is empty...| TO lt_msg.
     ELSE.
@@ -74,6 +77,7 @@ CLASS lcl_move IMPLEMENTATION.
 
     IF validate( EXPORTING it_from = from_storage->index_list
                  IMPORTING et_item = lt_item ).
+      processed = abap_true.
 
       LOOP AT lt_item INTO DATA(lo_item).
         from_storage->delete_by_name( lo_item->name ).
@@ -161,6 +165,7 @@ CLASS lcl_open IMPLEMENTATION.
     IF validate( EXPORTING it_from = ycl_axage_thing=>merge_index( VALUE #( ( owned_things )
                                                                             ( available_things ) ) )
                  IMPORTING et_item = lt_item ).
+      processed = abap_true.
       LOOP AT lt_item INTO DATA(lo_item).
         IF NOT empty( log = log
                       box = lo_item ).
@@ -200,6 +205,7 @@ CLASS lcl_ask IMPLEMENTATION.
     IF lines( actors_in_the_room ) = 0.
       error( 'There is no one here to ask...' ).
     ELSE.
+      processed = abap_true.
       LOOP AT objects INTO DATA(actor_name).
         LOOP AT actors_in_the_room INTO DATA(actor) WHERE table_line->nameuppercase = actor_name.
           info( concat_lines_of( table = actor->speak( ) sep = |\n|  ) ).
@@ -232,6 +238,7 @@ CLASS lcl_weld IMPLEMENTATION.
     IF validate( EXPORTING it_from = owned_things
                            number_of_parameters = 2
                  IMPORTING et_item = lt_thing ).
+        processed = abap_true.
         DATA(location) = engine->player->location.
         DATA(object1) = lt_thing[ 1 ].
         DATA(object2) = lt_thing[ 2 ].
@@ -295,6 +302,7 @@ CLASS lcl_splash IMPLEMENTATION.
                  number_of_parameters = 2 ).
       DATA(splash_subject) = objects[ 1 ].
       DATA(splash_object) = objects[ 2 ].
+      processed = abap_true.
 
       success( |You have splashed { splash_subject } on { splash_object }| ).
 
@@ -321,6 +329,7 @@ CLASS lcl_dunk IMPLEMENTATION.
                  number_of_parameters = 2 ).
       DATA(dunk_subject) = objects[ 1 ].
       DATA(dunk_object) = objects[ 2 ].
+      processed = abap_true.
 
       success( |You have dunked the { dunk_subject } into the { dunk_object }| ).
 
@@ -358,6 +367,7 @@ CLASS lcl_look IMPLEMENTATION.
 
     ELSEIF validate( EXPORTING it_from = things_at_location
                      IMPORTING et_item = lt_item ).
+      processed = abap_true.
       LOOP AT lt_item INTO DATA(lo_item).
         details( object = lo_item ).
       ENDLOOP.

@@ -250,6 +250,10 @@ CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
      can_be_dunk_into = abap_true ).
     living_room->add( bucket ).
 
+    DATA(mop) = engine->new_object( name = 'MOP' state = 'on the floor' descr = ''
+     can_be_dunk_into = abap_true ).
+    living_room->add( mop ).
+
     DATA(content_of_fireplace) = engine->new_node( name = 'FirePlaceContent'  ).
     DATA(ashes) = engine->new_object( name = 'ASHES'
        descr = 'enchanted ashes'  state = 'from past magical fires'
@@ -279,7 +283,7 @@ CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
     content_of_tome->add( engine->new_spell( name = 'LUMI' prefix = ''
        descr = '"Illuminara", a spell which can light up dark places.' ) ).
     DATA(tome) = NEW ycl_axage_openable_thing(
-      name    = 'TOME'
+      name    = 'SPELLBOOK'
       descr   = 'Magic Tome with arcane spells'
       content = content_of_tome
       needed  = needed_to_open_tome
@@ -399,6 +403,17 @@ CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
                            needed  = needed_to_open_shed ).
     garden->add( shed ).
 
+    DATA(well) = engine->new_object( name = 'WELL' state = 'in front of you' descr = ''
+      can_be_pickup = abap_false
+      can_be_drop = abap_false
+      can_be_dunk_into = abap_true
+      can_be_splash_into = abap_true ).
+    garden->add( well ).
+
+    DATA(chain) = engine->new_object( name = 'CHAIN' state = ' the floor' descr = ''
+      can_be_weld = abap_true ).
+    garden->add( chain ).
+
     " POND**:
 
     "- When you **LOOK** at the Pond, you notice that it's too dark to see anything.
@@ -408,6 +423,9 @@ CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
     DATA(potion) = engine->new_object( name = 'POTION' state = 'at the bottom'
                                        descr = 'of Infinite Stars'  ).
     pond->add( potion ).
+
+    DATA(frog) = engine->new_object( name = 'FROG' state = '' descr = ''  ).
+    pond->add( frog ).
 
     mt_suggestion = VALUE #(
         ( descr = 'Display help text'  value = 'HELP' )
@@ -471,10 +489,12 @@ CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
            )->button(
                text  = 'Cancel'
                press = client->_event( 'BUTTON_PLAYER_CANCEL' )
+               icon  = 'sap-icon://reset'
            )->button(
                text  = 'Confirm'
                press = client->_event( 'BUTTON_PLAYER_CONFIRM' )
-               type  = 'Emphasized' ).
+               type  = 'Emphasized'
+               icon  = 'sap-icon://accept' ).
 
     app-s_next-xml_popup = popup->get_root( )->xml_get( ).
 
@@ -484,15 +504,19 @@ CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
     app-client = client.
     app-s_get  = client->get( ).
 
+    mv_popup_name = ''.
+
     IF app-check_initialized = abap_false.
       app-check_initialized = abap_true.
+
       command = 'MAP'.
       init_game( ).
       help = engine->interprete( 'HELP' )->get( ).
 
-    ENDIF.
+      player_name = engine->player->name.
+      mv_popup_name = 'POPUP_TO_INPUT_PLAYER'.
 
-    mv_popup_name = ''.
+    ENDIF.
 
     CASE client->get( )-event.
       WHEN 'LOOK' OR 'INV' OR 'MAP' OR 'UP'
@@ -658,6 +682,7 @@ CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
                   )->button(
                      text = `Go` press = client->_event( `BUTTON_POST` )
                      type = `Emphasized`
+                     icon  = 'sap-icon://paper-plane'
              )->get_parent( )->get_parent(
 
              )->get_parent(

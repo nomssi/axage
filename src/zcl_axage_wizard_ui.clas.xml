@@ -5,7 +5,7 @@
    <VSEOCLASS>
     <CLSNAME>ZCL_AXAGE_WIZARD_UI</CLSNAME>
     <LANGU>E</LANGU>
-    <DESCRIPT>Adventure Game: The Wizard&apos;s Aspirant Quest</DESCRIPT>
+    <DESCRIPT>Adventure Game: The Wizard&amp;apos;s Aspirant Quest</DESCRIPT>
     <STATE>1</STATE>
     <CLSCCINCL>X</CLSCCINCL>
     <FIXPT>X</FIXPT>
