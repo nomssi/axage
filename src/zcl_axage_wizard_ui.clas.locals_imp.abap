@@ -6,8 +6,10 @@ CLASS lcl_texts DEFINITION.
   PUBLIC SECTION.
     CLASS-METHODS:
       intro RETURNING VALUE(result) TYPE string,
-      hint RETURNING VALUE(result) TYPE string,
-      cheat_hint RETURNING VALUE(result) TYPE string.
+      hint IMPORTING location TYPE string OPTIONAL
+           RETURNING VALUE(result) TYPE string,
+      cheat_hint IMPORTING location TYPE string
+                 RETURNING VALUE(result) TYPE string.
 
 ENDCLASS.
 
@@ -26,7 +28,21 @@ CLASS lcl_images DEFINITION.
 ENDCLASS.
 
 CLASS lcl_texts IMPLEMENTATION.
-METHOD hint.
+  METHOD hint.
+      CASE to_upper( condense( location ) ).
+      WHEN 'ATTIC'.
+        result = |A dimly lit attic filled with magical paraphernalia and old wizardry tools.<p>| &&
+                 |A wooden workbench cluttered with arcane devices stands against the wall. | &&
+                 | A closed chest with intricate carvings rests on the floor, exuding an aura of secrecy.| &&
+                 | A moon-crested key sparkles subtly amidst the organized chaos.<p>| &&
+                 |The wooden rafters are covered with cobwebs, while light trickles through a small window.|.
+      WHEN 'GARDEN'.
+        result = |A magical garden with vibrant and exotic plants glowing with enchantment.|.
+
+      WHEN 'POND'.
+       result = |A small, mysterious pond sits quietly at one corner, reflecting the twinkling stars above.|.
+
+      WHEN OTHERS.
     result = |<em>Esteemed Wizard Apprentice,</em>| &&
             |<p>| &&
             |You must prove your mastery of the arcane arts by obtaining three magical items:| &&
@@ -37,23 +53,32 @@ METHOD hint.
             |</ul>| &&
             |Combine those items correctly, so that you can open the portal to the Wizard's Guild, | &&
             |where you will become a full-fledged wizard.|.
+    ENDCASE.
   ENDMETHOD.
 
   METHOD cheat_hint.
-    result = |I solemnly swear I am up to no good!|.
+    result = |I solemnly swear I am up to no good!<p>|.
+    CASE to_upper( condense( location ) ).
+      WHEN 'LIVINGROOM'.
+        result = result && |You know you can talk to the wizard, don't you?|.
+      WHEN 'GARDEN'.
+        result = result && |You know you can weld sunflower with ashes, don't you?|.
+      WHEN 'ATTIC'.
+        result = result && |You remember how to dunk a staff in a magical potion to infuse magic, don't you?|.
+    ENDCASE.
   ENDMETHOD.
 
   METHOD intro.
     result = |\n| &&
-             |Esteemed Wizard Apprentice,\n| &&
-             |\n| &&
-             |Congratulations on your journey to mastery of the arcane arts.\n| &&
-             |Embark on your final quest, seek wisdom, solve puzzles, and overcome obstacles. | &&
-             |Unlock the secrets of our Guild and join us.\n| &&
-             |\n| &&
-             |May Eldoria guide you.\n| &&
-             |\n| &&
-             |Yours in magic\n| .
+         |Esteemed Wizard Apprentice,\n| &&
+         |\n| &&
+         |Congratulations on your journey to mastery of the arcane arts.\n| &&
+         |Embark on your final quest, seek wisdom, solve puzzles, and overcome obstacles. | &&
+         |Unlock the secrets of our Guild and join us.\n| &&
+         |\n| &&
+         |May Eldoria guide you.\n| &&
+         |\n| &&
+         |Yours in magic\n| .
   ENDMETHOD.
 
 ENDCLASS.

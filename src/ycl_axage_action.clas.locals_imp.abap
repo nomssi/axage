@@ -222,121 +222,117 @@ CLASS lcl_ask IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-CLASS lcl_weld DEFINITION INHERITING FROM ycl_axage_action.
+CLASS lcl_side_effect DEFINITION ABSTRACT INHERITING FROM ycl_axage_action.
   PUBLIC SECTION.
     METHODS execute REDEFINITION.
+  PROTECTED SECTION.
+    METHODS things_at_location RETURNING VALUE(rt_list) TYPE ycl_axage=>tt_index.
+ENDCLASS.
+
+CLASS lcl_side_effect IMPLEMENTATION.
+
+  METHOD things_at_location.
+    DATA(location) = engine->player->location.
+
+    DATA(owned_things) = engine->player->index_list.
+    DATA(available_things) = location->index_list.
+
+    rt_list = ycl_axage_thing=>merge_index( VALUE #( ( owned_things ) ( available_things ) ) ).
+  ENDMETHOD.
+
+  METHOD execute.
+    DATA lt_thing   TYPE tt_thing.
+    DATA ls_mapping TYPE ycl_axage=>ts_combine.
+    DATA separator  TYPE string.
+
+    IF NOT ( validate( EXPORTING it_from = things_at_location( )
+                                 number_of_parameters = 2
+                       IMPORTING et_item = lt_thing )
+              AND lines( lt_thing ) > 1 ).
+      RETURN.
+    ENDIF.
+    DATA(action_subject) = lt_thing[ 1 ].
+    DATA(action_object) = lt_thing[ 2 ].
+
+    processed = abap_true.
+
+    IF engine->combine( EXPORTING action = operation
+                                  object1 = lt_thing[ 1 ]
+                                  object2 = lt_thing[ 2 ]
+                        IMPORTING es_mapping = ls_mapping ).
+
+      " Remove objects
+      CASE ls_mapping-category.
+        WHEN ycl_axage=>c_combine_category_on.
+          separator = 'on'.
+          engine->player->delete_by_name( action_subject->name ).
+
+        WHEN ycl_axage=>c_combine_category_into.
+          separator = 'into'.
+          engine->player->delete_by_name( action_subject->name ).
+
+        WHEN ycl_axage=>c_combine_category_merge.
+          separator = 'to'.
+          engine->player->delete_by_name( action_subject->name ).
+          engine->player->delete_by_name( action_object->name ).
+
+        WHEN OTHERS.
+          separator = 'to'.
+      ENDCASE.
+
+      success( |You { operation } {  action_subject->name } { separator } {  action_object->name }| ).
+    ELSE.
+      error( |{ operation } {  action_subject->name } {  action_object->name } failed| ).
+    ENDIF.
+  ENDMETHOD.
+
+ENDCLASS.
+
+CLASS lcl_weld DEFINITION INHERITING FROM lcl_side_effect.
+  PUBLIC SECTION.
+    METHODS execute REDEFINITION.
+  PROTECTED SECTION.
+    METHODS things_at_location REDEFINITION.
 ENDCLASS.
 
 CLASS lcl_weld IMPLEMENTATION.
 
+  METHOD things_at_location.
+    DATA(owned_things) = engine->player->index_list.
+
+    rt_list = owned_things.
+  ENDMETHOD.
+
   METHOD execute.
     DATA lt_thing TYPE tt_thing.
 
-    DATA(owned_things) = engine->player->index_list.
-    "DATA(available_things) = engine->player->location->index_list.
+    DATA(location) = engine->player->location.
 
-    IF validate( EXPORTING it_from = owned_things
-                           number_of_parameters = 2
-                 IMPORTING et_item = lt_thing ).
-        processed = abap_true.
-        DATA(location) = engine->player->location.
-        DATA(object1) = lt_thing[ 1 ].
-        DATA(object2) = lt_thing[ 2 ].
+    " can_weld_at_this_location ?
+    DATA(can_weld) = abap_false.
+    LOOP AT location->get_list( ) INTO DATA(thing).
+      IF NOT line_exists( thing->capable_of[ table_line = operation ] ).
+        CONTINUE.
+      ENDIF.
+      can_weld = abap_true.
+      EXIT.
+    ENDLOOP.
 
-        " can_weld_at_this_location ?
-        LOOP AT location->get_list( ) INTO DATA(thing).
-          CHECK line_exists( thing->capable_of[ table_line = ycl_axage=>c_action_weld ] ).
-
-          success( |You have welded {  object1->name } to {  object2->name }| ).
-          DATA(idx) = line_index( engine->combinations[ operation = ycl_axage=>c_action_weld
-                                                        name1 = object1->name
-                                                        name2 = object2->name ] ).
-          IF idx EQ 0.
-            idx = line_index( engine->combinations[ operation = ycl_axage=>c_action_weld
-                                                    name1 = object2->name
-                                                    name2 = object1->name ] ).
-          ENDIF.
-
-          IF idx GT 0.
-            DATA(new_object_name) = engine->combinations[ idx ]-result.
-          ELSE.
-            new_object_name = |{ object1->name }+{ object2->name }|.
-          ENDIF.
-
-          DATA(new_object) = engine->clone_object( name = new_object_name
-                                                   descr = |created from { object1->name }+{ object2->name }| ).
-          new_object->subject_to = object1->subject_to.
-          new_object->capable_of = object1->capable_of.
-
-          " Add new object object1+object2
-          engine->player->add( new_object ).
-
-          " Remove 2 objects
-          engine->player->delete_by_name( object1->name ).
-          engine->player->delete_by_name( object2->name ).
-
-          RETURN.
-        ENDLOOP..
-
-        error( 'There is no Welding Torch here...' ).
+    IF can_weld = abap_false.
+      error( 'There is no Welding Torch here...' ).
+      RETURN.
     ENDIF.
+
+    super->execute( ).
 
   ENDMETHOD.
 
 ENDCLASS.
 
-CLASS lcl_splash DEFINITION INHERITING FROM ycl_axage_action.
-  PUBLIC SECTION.
-    METHODS execute REDEFINITION.
+CLASS lcl_splash DEFINITION INHERITING FROM lcl_side_effect.
 ENDCLASS.
 
-CLASS lcl_splash IMPLEMENTATION.
-
-  METHOD execute.
-    DATA(owned_things) = engine->player->index_list.
-    DATA(available_things) = engine->player->location->index_list.
-
-    DATA(things_at_location) = ycl_axage_thing=>merge_index( VALUE #( ( owned_things ) ( available_things ) ) ).
-
-    IF validate( it_from = things_at_location
-                 number_of_parameters = 2 ).
-      DATA(splash_subject) = objects[ 1 ].
-      DATA(splash_object) = objects[ 2 ].
-      processed = abap_true.
-
-      success( |You have splashed { splash_subject } on { splash_object }| ).
-
-    ENDIF.
-
-  ENDMETHOD.
-
-ENDCLASS.
-
-CLASS lcl_dunk DEFINITION INHERITING FROM ycl_axage_action.
-  PUBLIC SECTION.
-    METHODS execute REDEFINITION.
-ENDCLASS.
-
-CLASS lcl_dunk IMPLEMENTATION.
-
-  METHOD execute.
-    DATA(owned_things) = engine->player->index_list.
-    DATA(available_things) = engine->player->location->index_list.
-
-    DATA(things_at_location) = ycl_axage_thing=>merge_index( VALUE #( ( owned_things ) ( available_things ) ) ).
-
-    IF validate( it_from = things_at_location
-                 number_of_parameters = 2 ).
-      DATA(dunk_subject) = objects[ 1 ].
-      DATA(dunk_object) = objects[ 2 ].
-      processed = abap_true.
-
-      success( |You have dunked the { dunk_subject } into the { dunk_object }| ).
-
-    ENDIF.
-
-  ENDMETHOD.
-
+CLASS lcl_dunk DEFINITION INHERITING FROM lcl_side_effect.
 ENDCLASS.
 
 CLASS lcl_look DEFINITION INHERITING FROM ycl_axage_action.

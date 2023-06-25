@@ -26,6 +26,15 @@ CLASS ycl_axage_action DEFINITION
                                   !log TYPE REF TO ycl_axage_log
                                   operation TYPE string.
 
+    METHODS info
+      IMPORTING !description TYPE string.
+    METHODS warning
+      IMPORTING !description TYPE string.
+    METHODS success
+      IMPORTING !description TYPE string.
+    METHODS error
+      IMPORTING !description TYPE string.
+
   PROTECTED SECTION.
     DATA operation TYPE string.
     DATA objects TYPE string_table.
@@ -38,15 +47,6 @@ CLASS ycl_axage_action DEFINITION
                      RETURNING VALUE(valid) TYPE abap_bool.
     METHODS mandatory_params IMPORTING number TYPE i
                              RETURNING VALUE(valid) TYPE abap_bool.
-
-    METHODS info
-      IMPORTING !description TYPE string.
-    METHODS warning
-      IMPORTING !description TYPE string.
-    METHODS success
-      IMPORTING !description TYPE string.
-    METHODS error
-      IMPORTING !description TYPE string.
 
   PRIVATE SECTION.
 ENDCLASS.
@@ -175,6 +175,7 @@ CLASS YCL_AXAGE_ACTION IMPLEMENTATION.
       IF lo_item IS BOUND.
 
         IF    line_exists( lo_item->subject_to[ table_line = operation ] )
+           OR line_exists( lo_item->object_of[ table_line = operation ] )
            OR lo_item IS INSTANCE OF yif_axage_command.
           valid = abap_true.
           INSERT lo_item INTO TABLE et_item.

@@ -15,6 +15,7 @@ CLASS ycl_axage_thing DEFINITION INHERITING FROM ycl_axage
     DATA background TYPE string.
 
     DATA subject_to TYPE tt_action.
+    DATA object_of TYPE tt_action.
     DATA capable_of TYPE tt_action.
 
     DATA repository TYPE REF TO ycl_axage_repository READ-ONLY.
@@ -39,11 +40,14 @@ CLASS ycl_axage_thing DEFINITION INHERITING FROM ycl_axage
         prefix TYPE string DEFAULT c_prefix
          can_be_pickup TYPE abap_bool DEFAULT abap_true
          can_be_drop TYPE abap_bool DEFAULT  abap_true
-         can_weld TYPE abap_bool DEFAULT abap_false
          can_be_weld TYPE abap_bool DEFAULT abap_false
          can_be_open TYPE abap_bool DEFAULT abap_false
-         can_be_splash_into TYPE abap_bool DEFAULT abap_false
-         can_be_dunk_into TYPE abap_bool DEFAULT abap_false
+         can_be_splashed_on TYPE abap_bool DEFAULT abap_false
+         can_be_dunked_into TYPE abap_bool DEFAULT abap_false
+
+         can_be_dunked TYPE abap_bool DEFAULT abap_true
+         can_be_splashed TYPE abap_bool DEFAULT abap_true
+         can_weld TYPE abap_bool DEFAULT abap_false
       RETURNING VALUE(ro_thing) TYPE REF TO ycl_axage_thing.
 
     METHODS constructor
@@ -57,11 +61,14 @@ CLASS ycl_axage_thing DEFINITION INHERITING FROM ycl_axage
         background TYPE string DEFAULT space
          can_be_pickup TYPE abap_bool DEFAULT abap_true
          can_be_drop TYPE abap_bool DEFAULT  abap_true
-         can_weld TYPE abap_bool DEFAULT abap_false
          can_be_weld TYPE abap_bool DEFAULT abap_false
          can_be_open TYPE abap_bool DEFAULT abap_false
-         can_be_splash_into TYPE abap_bool DEFAULT abap_false
-         can_be_dunk_into TYPE abap_bool DEFAULT abap_false.
+         can_be_splashed_on TYPE abap_bool DEFAULT abap_false
+         can_be_dunked_into TYPE abap_bool DEFAULT abap_false
+
+         can_be_dunked TYPE abap_bool
+         can_be_splashed TYPE abap_bool
+         can_weld TYPE abap_bool DEFAULT abap_false.
 
     METHODS attributes
       IMPORTING
@@ -69,9 +76,11 @@ CLASS ycl_axage_thing DEFINITION INHERITING FROM ycl_axage
          can_be_drop TYPE abap_bool
          can_be_weld TYPE abap_bool
          can_be_open TYPE abap_bool
-         can_be_splash_into TYPE abap_bool
-         can_be_dunk_into TYPE abap_bool
+         can_be_splashed_on TYPE abap_bool
+         can_be_dunked_into TYPE abap_bool
 
+         can_be_dunked TYPE abap_bool
+         can_be_splashed TYPE abap_bool
          can_weld TYPE abap_bool.
 
     METHODS describe IMPORTING with_state TYPE abap_bool DEFAULT abap_true
@@ -141,12 +150,20 @@ CLASS YCL_AXAGE_THING IMPLEMENTATION.
       INSERT c_action_weld INTO TABLE subject_to.
     ENDIF.
 
-    IF can_be_splash_into EQ abap_true.
+    IF can_be_splashed_on EQ abap_true.
       INSERT c_action_splash INTO TABLE subject_to.
     ENDIF.
-    IF can_be_dunk_into EQ abap_true.
+    IF can_be_dunked_into EQ abap_true.
       INSERT c_action_dunk INTO TABLE subject_to.
     ENDIF.
+    " Object of
+    IF can_be_dunked EQ abap_true.
+      INSERT c_action_dunk INTO TABLE object_of.
+    ENDIF.
+    IF can_be_splashed EQ abap_true.
+      INSERT c_action_splash INTO TABLE object_of.
+    ENDIF.
+
     " Capable of
     IF can_weld EQ abap_true.
       INSERT c_action_weld INTO TABLE capable_of.
@@ -172,9 +189,11 @@ CLASS YCL_AXAGE_THING IMPLEMENTATION.
                 can_be_drop        = can_be_drop
                 can_be_weld        = can_be_weld
                 can_be_open        = can_be_open
-                can_be_splash_into = can_be_splash_into
-                can_be_dunk_into   = can_be_dunk_into
+                can_be_splashed_on   = can_be_splashed_on
+                can_be_dunked_into   = can_be_dunked_into
 
+                can_be_dunked      = can_be_dunked
+                can_be_splashed    = can_be_splashed
                 can_weld           = can_weld ).
 
     me->repository = repository.
@@ -282,7 +301,11 @@ CLASS YCL_AXAGE_THING IMPLEMENTATION.
                        can_be_drop = can_be_drop
                        can_be_weld = can_be_weld
                        can_be_open = can_be_open
-                       can_be_splash_into = can_be_splash_into
-                       can_be_dunk_into = can_be_dunk_into ).
+                       can_be_splashed_on = can_be_splashed_on
+                       can_be_dunked_into = can_be_dunked_into
+
+                       can_be_dunked = can_be_dunked
+                       can_be_splashed = can_be_splashed
+                       can_weld = can_weld ).
   ENDMETHOD.
 ENDCLASS.

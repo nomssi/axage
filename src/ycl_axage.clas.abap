@@ -19,13 +19,20 @@ CLASS ycl_axage DEFINITION
            END OF ts_command.
     TYPES tt_command TYPE SORTED TABLE OF ts_command WITH UNIQUE KEY action.
 
+    TYPES tv_combine_category TYPE tv_index.
     TYPES: BEGIN OF ts_combine,
              operation TYPE string,
              name1     TYPE string,
              name2     TYPE string,
              result    TYPE string,
+             category  TYPE tv_combine_category,
            END OF ts_combine.
     TYPES tt_combine TYPE SORTED TABLE OF ts_combine WITH UNIQUE KEY operation name1 name2.
+
+    CONSTANTS c_combine_category_noop  TYPE tv_combine_category VALUE 0.
+    CONSTANTS c_combine_category_merge TYPE tv_combine_category VALUE 1.
+    CONSTANTS c_combine_category_into  TYPE tv_combine_category VALUE 2.
+    CONSTANTS c_combine_category_on    TYPE tv_combine_category VALUE 3.
 
     CONSTANTS c_prefix           TYPE string    VALUE `a `.
     CONSTANTS c_type_node        TYPE tv_type   VALUE 'node'.

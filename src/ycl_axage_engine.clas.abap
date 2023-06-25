@@ -19,11 +19,13 @@ CLASS ycl_axage_engine DEFINITION INHERITING FROM ycl_axage_repository
                 prefix             TYPE string             DEFAULT ycl_axage=>c_prefix
                 can_be_pickup      TYPE abap_bool          DEFAULT abap_true
                 can_be_drop        TYPE abap_bool          DEFAULT abap_true
-                can_weld           TYPE abap_bool          DEFAULT abap_false
                 can_be_weld        TYPE abap_bool          DEFAULT abap_false
                 can_be_open        TYPE abap_bool          DEFAULT abap_false
-                can_be_splash_into TYPE abap_bool          DEFAULT abap_false
-                can_be_dunk_into   TYPE abap_bool          DEFAULT abap_false
+                can_be_splashed_on TYPE abap_bool          DEFAULT abap_false
+                can_be_dunked_into TYPE abap_bool          DEFAULT abap_false
+                can_be_dunked      TYPE abap_bool          DEFAULT abap_true
+                can_be_splashed    TYPE abap_bool          DEFAULT abap_true
+                can_weld           TYPE abap_bool          DEFAULT abap_false
                 background         TYPE string OPTIONAL
       RETURNING VALUE(ro_thing)    TYPE REF TO ycl_axage_thing.
 
@@ -31,6 +33,22 @@ CLASS ycl_axage_engine DEFINITION INHERITING FROM ycl_axage_repository
       IMPORTING !name              TYPE clike
                 descr TYPE clike
       RETURNING VALUE(ro_thing)    TYPE REF TO ycl_axage_thing.
+
+    METHODS combine
+      IMPORTING action type ycl_axage=>tv_action
+                object1 TYPE REF TO ycl_axage_thing
+                object2 TYPE REF TO ycl_axage_thing
+*                prefix             TYPE string             DEFAULT ycl_axage=>c_prefix
+*                can_be_pickup      TYPE abap_bool          DEFAULT abap_true
+*                can_be_drop        TYPE abap_bool          DEFAULT abap_true
+*                can_weld           TYPE abap_bool          DEFAULT abap_false
+*                can_be_weld        TYPE abap_bool          DEFAULT abap_false
+*                can_be_open        TYPE abap_bool          DEFAULT abap_false
+*                can_be_splash_into TYPE abap_bool          DEFAULT abap_false
+*                can_be_dunk_into   TYPE abap_bool          DEFAULT abap_false
+*                background         TYPE string OPTIONAL
+      EXPORTING es_mapping TYPE ycl_axage=>ts_combine
+      RETURNING VALUE(done) TYPE abap_bool.
 
     METHODS new_spell
       IMPORTING !name           TYPE clike
@@ -157,8 +175,47 @@ CLASS YCL_AXAGE_ENGINE IMPLEMENTATION.
                        can_be_drop = abap_true
                        can_be_weld = abap_false
                        can_be_open = abap_false
-                       can_be_splash_into = abap_false
-                       can_be_dunk_into = abap_true ).
+                       can_be_splashed = abap_true
+                       can_be_splashed_on = abap_true
+                       can_be_dunked = abap_true
+                       can_be_dunked_into = abap_false ).
+  ENDMETHOD.
+
+  METHOD combine.
+    DATA new_object_name TYPE string.
+
+    done = abap_false.
+    CLEAR es_mapping.
+    DATA(idx) = line_index( combinations[ operation = action
+                                          name1 = object1->name
+                                          name2 = object2->name ] ).
+    IF idx EQ 0.
+      idx = line_index( combinations[ operation = action
+                                      name1 = object2->name
+                                      name2 = object1->name ] ).
+    ENDIF.
+
+      IF idx GT 0.
+        es_mapping = combinations[ idx ].
+        new_object_name = es_mapping-result.
+      ELSE.
+        new_object_name = |{ object1->name }+{ object2->name }|.
+      ENDIF.
+
+      DATA(new_object) = clone_object( name = new_object_name
+                                       descr = |created from { object1->name }+{ object2->name }| ).
+      IF new_object IS BOUND.
+        new_object->subject_to = object1->subject_to.
+        new_object->capable_of = object1->capable_of.
+
+        " Add new object object1+object2
+        player->add( new_object ).
+
+        done = abap_true.
+
+      ENDIF.
+
+
   ENDMETHOD.
 
   METHOD constructor.
@@ -262,12 +319,15 @@ CLASS YCL_AXAGE_ENGINE IMPLEMENTATION.
                        descr = descr
                        state = state
                        prefix = prefix
+                       can_weld = can_weld
+                       can_be_dunked = can_be_dunked
+                       can_be_splashed = can_be_splashed
                        can_be_pickup = can_be_pickup
                        can_be_drop = can_be_drop
                        can_be_weld = can_be_weld
                        can_be_open = can_be_open
-                       can_be_splash_into = can_be_splash_into
-                       can_be_dunk_into = can_be_dunk_into
+                       can_be_splashed_on = can_be_splashed_on
+                       can_be_dunked_into = can_be_dunked_into
                        background = background ).
   ENDMETHOD.
 
@@ -295,8 +355,8 @@ CLASS YCL_AXAGE_ENGINE IMPLEMENTATION.
                    can_be_drop = abap_false
                    can_be_weld = abap_false
                    can_be_open = abap_false
-                   can_be_splash_into = abap_false
-                   can_be_dunk_into = abap_false ).
+                   can_be_splashed_on = abap_false
+                   can_be_dunked_into = abap_false ).
   ENDMETHOD.
 
 

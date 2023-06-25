@@ -25,8 +25,10 @@ CLASS ycl_axage_openable_thing DEFINITION
                 can_weld           TYPE abap_bool DEFAULT abap_false
                 can_be_weld        TYPE abap_bool DEFAULT abap_false
                 can_be_open        TYPE abap_bool DEFAULT abap_false
-                can_be_splash_into TYPE abap_bool DEFAULT abap_false
-                can_be_dunk_into   TYPE abap_bool DEFAULT abap_false.
+                can_be_splashed    TYPE abap_bool DEFAULT abap_false
+                can_be_splashed_on TYPE abap_bool DEFAULT abap_false
+                can_be_dunked      TYPE abap_bool DEFAULT abap_false
+                can_be_dunked_into TYPE abap_bool DEFAULT abap_false.
 
     DATA needed TYPE REF TO ycl_axage_thing.
 
@@ -51,8 +53,10 @@ CLASS ycl_axage_openable_thing IMPLEMENTATION.
          can_weld = can_weld
          can_be_weld = can_be_weld
          can_be_open = abap_true
-         can_be_splash_into = can_be_splash_into
-         can_be_dunk_into = can_be_dunk_into
+         can_be_splashed = can_be_splashed
+         can_be_splashed_on = can_be_splashed_on
+         can_be_dunked = can_be_dunked
+         can_be_dunked_into = can_be_dunked_into
          repository = repository ).
     me->needed = needed.
     me->content = content.

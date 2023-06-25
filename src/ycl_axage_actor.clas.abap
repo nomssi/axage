@@ -64,9 +64,11 @@ CLASS YCL_AXAGE_ACTOR IMPLEMENTATION.
 
                         can_be_weld        = abap_false
                         can_be_open        = abap_false
-                        can_be_dunk_into   = abap_false
+                        can_be_dunked      = abap_false
+                        can_be_dunked_into = abap_false
 
-                        can_be_splash_into = abap_true
+                        can_be_splashed    = abap_true
+                        can_be_splashed_on = abap_true
                         can_weld           = abap_false ).
     me->active = active.
     nameUpperCase = to_upper( me->name ).

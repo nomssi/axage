@@ -20,8 +20,8 @@ CLASS ycl_axage_castable_spell DEFINITION
                 can_weld           TYPE abap_bool DEFAULT abap_false
                 can_be_weld        TYPE abap_bool DEFAULT abap_false
                 can_be_open        TYPE abap_bool DEFAULT abap_false
-                can_be_splash_into TYPE abap_bool DEFAULT abap_false
-                can_be_dunk_into   TYPE abap_bool DEFAULT abap_false.
+                can_be_splashed_on TYPE abap_bool DEFAULT abap_false
+                can_be_dunked_into TYPE abap_bool DEFAULT abap_false.
 
   PROTECTED SECTION.
   PRIVATE SECTION.
@@ -41,8 +41,10 @@ CLASS YCL_AXAGE_CASTABLE_SPELL IMPLEMENTATION.
          can_weld = can_weld
          can_be_weld = can_be_weld
          can_be_open = abap_true
-         can_be_splash_into = can_be_splash_into
-         can_be_dunk_into = can_be_dunk_into
+         can_be_splashed_on = can_be_splashed_on
+         can_be_dunked_into = can_be_dunked_into
+         can_be_dunked = abap_false
+         can_be_splashed = abap_false
          repository = repository ).
     yif_axage_command~category = yif_axage_command=>c_spell.
   ENDMETHOD.

@@ -65,7 +65,12 @@ CLASS ycl_axage_room IMPLEMENTATION.
                         descr = descr
                         repository = repository
                         background = background
-                        prefix = prefix ).
+                        prefix = prefix
+                        can_be_dunked = abap_false
+                        can_be_dunked_into = abap_false
+                        can_be_splashed = abap_false
+                        can_be_splashed_on = abap_false ).
+
     me->dark       = dark.
     me->no_exit = no_exit.
     me->cheat = cheat.

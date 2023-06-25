@@ -188,16 +188,17 @@ CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
                              name = 'Living Room'
                              descr = 'the living-room of a wizard''s house.'
                              background = lcl_images=>living_room( )
-                             cheat = lcl_texts=>cheat_hint( ) ).
+                             cheat = lcl_texts=>cheat_hint( 'LIVINGROOM' ) ).
     DATA(attic)  = engine->new_room( name = 'Attic'
                                      descr = 'the attic.'
                                      background = lcl_images=>attic( )
                                      dark = abap_true
                                      state = 'The attic is dark'
-                                     cheat = lcl_texts=>cheat_hint( )  ).
+                                     cheat = lcl_texts=>cheat_hint( 'ATTIC' )  ).
     DATA(garden) = engine->new_room( name = 'Garden'
                                        descr = 'a beautiful garden.'
-                                       background = lcl_images=>garden( ) ).
+                                       background = lcl_images=>garden( )
+                                       cheat = lcl_texts=>cheat_hint( 'GARDEN' ) ).
     DATA(pond) = engine->new_room( name = 'Pond'
                                    descr = 'a pond with a frog'
                                    state = 'The pond is dark'
@@ -238,7 +239,7 @@ CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
                                      ( |Find the Potion of Infinite Stars| )
                                      ( |Create the Orb of Sunlight and | )
                                      ( |the Staff of Eternal Moon. \n| )
-                                     ( |Check the magic tome and let me sleep...\n| ) )     ).
+                                     ( |Read the spellbook and let me sleep...\n| ) )     ).
     living_room->add( wizard ).
 
     DATA(whiskey) = engine->new_object( name = 'BOTTLE' state = 'on the floor' descr = 'whiskey'  ).
@@ -246,18 +247,22 @@ CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
 
     DATA(bucket) = engine->new_object( name = 'BUCKET' state = 'on the floor' descr = 'with water'
      can_be_weld = abap_true
-     can_be_splash_into = abap_true
-     can_be_dunk_into = abap_true ).
+     can_be_splashed = abap_true
+     can_be_splashed_on = abap_true
+     can_be_dunked = abap_true
+     can_be_dunked_into = abap_true ).
     living_room->add( bucket ).
 
     DATA(mop) = engine->new_object( name = 'MOP' state = 'on the floor' descr = ''
-     can_be_dunk_into = abap_true ).
+     can_be_dunked = abap_true
+     can_be_dunked_into = abap_false ).
     living_room->add( mop ).
 
     DATA(content_of_fireplace) = engine->new_node( name = 'FirePlaceContent'  ).
     DATA(ashes) = engine->new_object( name = 'ASHES'
        descr = 'enchanted ashes'  state = 'from past magical fires'
-       prefix = space ).
+       prefix = space
+       can_be_weld = abap_true ).
 
     content_of_fireplace->add( ashes ).
 
@@ -306,7 +311,8 @@ CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
                            needed  = needed_to_open_bookshelf ).
     living_room->add( bookshelf ).
 
-    DATA(painting) = engine->new_object( prefix = `an Old ` name = 'PAINTING' state = 'with the title The Guild''s Trial'
+    DATA(painting) = engine->new_object( prefix = `an Old ` name = 'PAINTING'
+       state = 'with the title The Guild''s Trial'
        descr = 'depiction of the Orb of Sunlight, the Potion of Infinite Stars, and the Staff of Eternal Moon'
      can_be_pickup = abap_false
      can_be_drop = abap_false ).
@@ -325,7 +331,15 @@ CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
     "- When you **PICKUP** the Magic Staff and **DUNK** it into the Potion of Infinite Stars, then **SPLASH** the Orb of Sunlight onto the combined items, you obtain the Staff of Eternal Moon.
 
     DATA(magic_Staff) = engine->new_object( name = 'STAFF'
-       descr = 'an old Magic Staff'  state = '' ).
+                       descr = 'an old Magic Staff'  state = ''
+                       can_be_pickup = abap_true
+                       can_be_drop = abap_true
+                       can_be_weld = abap_false
+                       can_be_open = abap_false
+                       can_be_splashed = abap_true
+                       can_be_splashed_on = abap_true
+                       can_be_dunked = abap_true
+                       can_be_dunked_into = abap_false ).
 
     DATA(content_of_chest) = engine->new_node( 'ChestContent' ).
     content_of_chest->add( magic_staff ).
@@ -370,7 +384,8 @@ CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
 
     DATA(content_of_flowerbed) = engine->new_node( name = 'FlowerbedContent'  ).
     DATA(sunflower) = engine->new_object( name = 'SUNFLOWER'
-       descr = 'a Sunflower'  state = 'in a Flower Bed' ).
+       descr = 'a Sunflower'  state = 'in a Flower Bed'
+       can_be_weld = abap_true ).
 
     content_of_flowerbed->add( sunflower ).
 
@@ -406,8 +421,10 @@ CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
     DATA(well) = engine->new_object( name = 'WELL' state = 'in front of you' descr = ''
       can_be_pickup = abap_false
       can_be_drop = abap_false
-      can_be_dunk_into = abap_true
-      can_be_splash_into = abap_true ).
+      can_be_dunked = abap_false
+      can_be_dunked_into = abap_true
+      can_be_splashed = abap_false
+      can_be_splashed_on = abap_true ).
     garden->add( well ).
 
     DATA(chain) = engine->new_object( name = 'CHAIN' state = ' the floor' descr = ''
@@ -421,7 +438,15 @@ CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
     "- When you **PICKUP** the Bottle, you discover it's a Potion of Infinite Stars.
 
     DATA(potion) = engine->new_object( name = 'POTION' state = 'at the bottom'
-                                       descr = 'of Infinite Stars'  ).
+                                       descr = 'of Infinite Stars'
+                       can_be_pickup = abap_true
+                       can_be_drop = abap_true
+                       can_be_weld = abap_false
+                       can_be_open = abap_false
+                       can_be_splashed = abap_true
+                       can_be_splashed_on = abap_false
+                       can_be_dunked = abap_false
+                       can_be_dunked_into = abap_true ).
     pond->add( potion ).
 
     DATA(frog) = engine->new_object( name = 'FROG' state = '' descr = ''  ).
@@ -458,7 +483,19 @@ CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
                                          ( operation = ycl_axage=>c_action_weld
                                            name1     = 'ASHES'
                                            name2     = 'SUNFLOWER'
-                                           result    = 'ORB' ) ).
+                                           result    = 'ORB'
+                                           category  = ycl_axage=>c_combine_category_merge )
+                                         ( operation = ycl_axage=>c_action_dunk
+                                           name1     = 'STAFF'
+                                           name2     = 'POTION'
+                                           result    = 'MAGICSTAFF'
+                                           category  = ycl_axage=>c_combine_category_into )
+                                         ( operation = ycl_axage=>c_action_splash
+                                           name1     = 'ORB'
+                                           name2     = 'MAGICSTAFF'
+                                           result    = 'MOONSTAFF'
+                                           category  = ycl_axage=>c_combine_category_on )
+                                           ).
   ENDMETHOD.
 
 
@@ -687,7 +724,7 @@ CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
 
              )->get_parent(
 
-              )->scroll_container( height = '40%' vertical = abap_true focusable = abap_false
+              )->scroll_container( height = '30%' vertical = abap_true focusable = abap_false
              )->message_view(
                  items = client->_bind( messages )
                  groupitems = abap_true
@@ -707,7 +744,7 @@ CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
          )->carousel(
            )->image( src = background_image
            )->vbox( 'sapUiMediumMargin'
-                     )->formatted_text( lcl_texts=>hint( )
+                     )->formatted_text( lcl_texts=>hint( engine->player->location->name )
              )->get_parent(
            )->vbox( 'sapUiMediumMargin'
                      )->formatted_text( Cheat_Sheet
