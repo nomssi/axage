@@ -1,14 +1,14 @@
 CLASS zcl_axage_wizard_ui DEFINITION
   PUBLIC
   FINAL
-  CREATE PUBLIC .
+  CREATE PUBLIC.
 
   PUBLIC SECTION.
     INTERFACES z2ui5_if_app.
 
     DATA command          TYPE string.
     DATA auto_look        TYPE abap_bool VALUE abap_true.
-    DATA anzahl_items     TYPE string     VALUE '0'.
+    DATA anzahl_items     TYPE string    VALUE '0'.
     DATA results          TYPE string.
     DATA help             TYPE string.
     DATA formatted_text   TYPE string.
@@ -16,8 +16,7 @@ CLASS zcl_axage_wizard_ui DEFINITION
 
     DATA current_location TYPE string.
     DATA cheat_sheet      TYPE string.
-    data background_image TYPE string.
-    DATA hotspot_data     TYPE string.
+    DATA background_image TYPE string.
 
     TYPES:
       BEGIN OF ts_suggestion_items,
@@ -43,11 +42,11 @@ CLASS zcl_axage_wizard_ui DEFINITION
     DATA messages     TYPE ycl_axage_log=>tt_msg.
 
     METHODS view_popup_input
-      IMPORTING client TYPE REF TO z2ui5_if_client.
+      IMPORTING !client TYPE REF TO z2ui5_if_client.
 
-  PROTECTED SECTION.
   PRIVATE SECTION.
     CONSTANTS c_id_command TYPE string VALUE 'id_command'.
+
     DATA:
       BEGIN OF app,
         client            TYPE REF TO z2ui5_if_client,
@@ -58,74 +57,69 @@ CLASS zcl_axage_wizard_ui DEFINITION
       END OF app.
 
     DATA mv_popup_name TYPE string.
-    DATA engine TYPE REF TO ycl_axage_engine.
+    DATA engine        TYPE REF TO ycl_axage_engine.
 
     METHODS init_game.
-    METHODS floorplan RETURNING VALUE(result) TYPE string_table.
-    METHODS execute IMPORTING command TYPE string.
+    METHODS floorplan        RETURNING VALUE(result) TYPE string_table.
+    METHODS execute          IMPORTING !command      TYPE string.
     METHODS create_help_html RETURNING VALUE(result) TYPE string.
     METHODS set_focus.
 ENDCLASS.
 
 
-
-CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
-
-
+CLASS zcl_axage_wizard_ui IMPLEMENTATION.
   METHOD create_help_html.
-     result =
-      `<pre>` &&
-        '              _,._       ' && '<br>' &&
-        '  .||,       /_ _\\\\     ' && '<br>' &&
-        ' \.`'',/      |''L''| |     ' && '<br>' &&
-        ' = ,. =      | -,| L     ' && '<br>' &&
-        ' / || \    ,-''\"/,''`.    ' && '<br>' &&
-        '   ||     ,''   `,,. `.  ' && '<br>' &&
-        '   ,|____,'' , ,;'' \| |   ' && '<br>' &&
-        '  (3|\    _/|/''   _| |   ' && '<br>' &&
-        '   ||/,-''   | >-'' _,\\\\ ' && '<br>' &&
-        '   ||''      ==\ ,-''  ,''  ' && '<br>' &&
-        '   ||       |  V \ ,|    ' && '<br>' &&
-        '   ||       |    |` |    ' && '<br>' &&
-        '   ||       |    |   \   ' && '<br>' &&
-        '   ||       |    \    \  ' && '<br>' &&
-        '   ||       |     |    \ ' && '<br>' &&
-        '   ||       |      \_,-'' ' && '<br>' &&
-        '   ||       |___,,--")_\ ' && '<br>' &&
-        '   ||         |_|   ccc/ ' && '<br>' &&
-        '   ||        ccc/        ' && '<br>' &&
-        '   ||                hjm ' && '<br>' &&
-        `</pre>` &&
+    result =
+     `<pre>` &&
+       '              _,._       ' && '<br>' &&
+       '  .||,       /_ _\\\\     ' && '<br>' &&
+       ' \.`'',/      |''L''| |     ' && '<br>' &&
+       ' = ,. =      | -,| L     ' && '<br>' &&
+       ' / || \    ,-''\"/,''`.    ' && '<br>' &&
+       '   ||     ,''   `,,. `.  ' && '<br>' &&
+       '   ,|____,'' , ,;'' \| |   ' && '<br>' &&
+       '  (3|\    _/|/''   _| |   ' && '<br>' &&
+       '   ||/,-''   | >-'' _,\\\\ ' && '<br>' &&
+       '   ||''      ==\ ,-''  ,''  ' && '<br>' &&
+       '   ||       |  V \ ,|    ' && '<br>' &&
+       '   ||       |    |` |    ' && '<br>' &&
+       '   ||       |    |   \   ' && '<br>' &&
+       '   ||       |    \    \  ' && '<br>' &&
+       '   ||       |     |    \ ' && '<br>' &&
+       '   ||       |      \_,-'' ' && '<br>' &&
+       '   ||       |___,,--")_\ ' && '<br>' &&
+       '   ||         |_|   ccc/ ' && '<br>' &&
+       '   ||        ccc/        ' && '<br>' &&
+       '   ||                hjm ' && '<br>' &&
+       `</pre>` &&
 
-      |<h2>Help</h2><p>| &
-      |<h3>Navigation</h3><ul>| &&
-      |<li>MAP        <em>Show map/floor plan/world.</em>| &&
-      |<li>N or NORTH <em>Walk to the room on the north side.</em>| &&
-      |<li>E or EAST  <em>Walk to the room on the east side.</em>| &&
-      `<li>S or SOUTH <em>Walk to the room on the south side.</em>` &&
-      `<li>W or WEST  <em>Walk to the room on the west side.</em>` &&
-      `<li>U or UP    <em>Go to the room upstairs.</em>` &&
-      `<li>D or DOWN  <em>Go to the room downstairs.</em></ul><p>`.
+     |<h2>Help</h2><p>| &
+     |<h3>Navigation</h3><ul>| &&
+     |<li>MAP        <em>Show map/floor plan/world.</em>| &&
+     |<li>N or NORTH <em>Walk to the room on the north side.</em>| &&
+     |<li>E or EAST  <em>Walk to the room on the east side.</em>| &&
+     `<li>S or SOUTH <em>Walk to the room on the south side.</em>` &&
+     `<li>W or WEST  <em>Walk to the room on the west side.</em>` &&
+     `<li>U or UP    <em>Go to the room upstairs.</em>` &&
+     `<li>D or DOWN  <em>Go to the room downstairs.</em></ul><p>`.
 
-      result = result &&
-      |<h3>Interaction</h3>| &&
-      |<ul><li>INV or INVENTORY <em>View everything you are carrying.</em>| &&
-      `<li>LOOK <em>Describe your environment.</em>` &&
-      `<li>LOOK object     <em>Have a closer look at the object in the room or in your inventory.</em>` &&
-      `<li>PICKUP object   (or TAKE) <em>Pickup an object in the current place.</em>` &&
-      `<li>DROP object     <em>Drop an object that you carry.</em>` &&
-      `<li>OPEN object     <em>Open something that is in the room.</em></ul><p>`.
+    result = result &&
+    |<h3>Interaction</h3>| &&
+    |<ul><li>INV or INVENTORY <em>View everything you are carrying.</em>| &&
+    `<li>LOOK <em>Describe your environment.</em>` &&
+    `<li>LOOK object     <em>Have a closer look at the object in the room or in your inventory.</em>` &&
+    `<li>PICKUP object   (or TAKE) <em>Pickup an object in the current place.</em>` &&
+    `<li>DROP object     <em>Drop an object that you carry.</em>` &&
+    `<li>OPEN object     <em>Open something that is in the room.</em></ul><p>`.
 
-      result = result &&
-      |<h3>Other</h3><ul>| &&
-      `<li>ASK person            <em>Ask a person to tell you something.</em>` &&
-      `<li>CAST spell            <em>Cast a spell you have learned before.</em>` &&
-      `<li>WELD subject object   <em>Weld subject to the object if allowed.</em>` &&
-      `<li>DUNK subject object   <em>Dunk subject into object if allowed.</em>` &&
-      `<li>SPLASH subject object <em>Splash  subject into object.</em></ul>`.
-
+    result = result &&
+    |<h3>Other</h3><ul>| &&
+    `<li>ASK person            <em>Ask a person to tell you something.</em>` &&
+    `<li>CAST spell            <em>Cast a spell you have learned before.</em>` &&
+    `<li>WELD subject object   <em>Weld subject to the object if allowed.</em>` &&
+    `<li>DUNK subject object   <em>Dunk subject into object if allowed.</em>` &&
+    `<li>SPLASH subject object <em>Splash  subject into object.</em></ul>`.
   ENDMETHOD.
-
 
   METHOD execute.
     DATA(log) = engine->interprete( command = command
@@ -142,7 +136,7 @@ CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
       engine->player->location = guild.
       log->success_msg( title = 'Mission completed'
                         subtitle = 'You did it!'
-                        description = lcl_texts=>congratulation(  )  ).
+                        description = lcl_texts=>congratulation( )  ).
     ENDIF.
 
     current_location = |<h4>You are in { engine->player->location->description }</h4>|.
@@ -152,7 +146,6 @@ CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
 
     messages = log->t_msg.
     results = log->get( ).
-
   ENDMETHOD.
 
   METHOD floorplan.
@@ -481,7 +474,6 @@ CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
         ( descr = 'Dunk <subject> <object>'  value = 'DUNK' )
         ( descr = 'Splash <subject> <object>'  value = 'SPLASH' ) ).
 
-
     formatted_text = create_help_html( ).
 
     engine->combinations = VALUE #( BASE engine->combinations
@@ -499,10 +491,8 @@ CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
                                            name1     = 'ORB'
                                            name2     = 'MAGICSTAFF'
                                            result    = 'MOONSTAFF'
-                                           category  = ycl_axage=>c_combine_category_on )
-                                           ).
+                                           category  = ycl_axage=>c_combine_category_on ) ).
   ENDMETHOD.
-
 
   METHOD set_focus.
     app-client->cursor_set(  VALUE #( id = c_id_command
@@ -511,12 +501,10 @@ CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
                                       selectionend = '1' ) ).
   ENDMETHOD.
 
-
   METHOD view_popup_input.
-
-    DATA(popup) = Z2UI5_CL_XML_VIEW=>factory_popup( client ).
+    DATA(popup) = z2ui5_cl_xml_view=>factory_popup( client ).
     popup->dialog(
-       "contentheight = '200px'
+       " contentheight = '200px'
        contentwidth  = '500px'
        title = 'Player Profile'
        icon = 'sap-icon://account'
@@ -549,7 +537,6 @@ CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
                icon  = 'sap-icon://accept' ).
 
     client->popup_display( popup->stringify( ) ).
-
   ENDMETHOD.
 
   METHOD z2ui5_if_app~main.
@@ -828,7 +815,6 @@ CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
              text = 'Land Of Lisp'
              href  = 'http://landoflisp.com' ).
 
-
     CASE mv_popup_name.
 
       WHEN 'POPUP_TO_INPUT_PLAYER'.
@@ -838,6 +824,5 @@ CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
 
     set_focus( ).
     client->view_display( lo_main->stringify( ) ).
-
   ENDMETHOD.
 ENDCLASS.

@@ -20,16 +20,16 @@ CLASS ycl_axage_repository DEFINITION
     METHODS by_name
       IMPORTING !name            TYPE string
                 it_index         TYPE ycl_axage=>tt_index
-      EXPORTING !from TYPE REF TO ycl_axage_thing
+      EXPORTING !from            TYPE REF TO ycl_axage_thing
       RETURNING VALUE(ro_object) TYPE REF TO ycl_axage_thing.
 
-protected section.
-private section.
+  PROTECTED SECTION.
+
+  PRIVATE SECTION.
 ENDCLASS.
 
 
-CLASS YCL_AXAGE_REPOSITORY IMPLEMENTATION.
-
+CLASS ycl_axage_repository IMPLEMENTATION.
   METHOD by_name.
     CLEAR ro_object.
     LOOP AT it_index INTO DATA(from_idx).
@@ -41,14 +41,13 @@ CLASS YCL_AXAGE_REPOSITORY IMPLEMENTATION.
     ENDLOOP.
   ENDMETHOD.
 
-  METHOD ADD.
+  METHOD add.
     APPEND thing TO all_things.
     index = sy-tabix.
   ENDMETHOD.
 
-
   METHOD by_index.
-    IF index GT 0.
+    IF index > 0.
       thing = VALUE #( all_things[ index ] OPTIONAL ).
     ENDIF.
   ENDMETHOD.

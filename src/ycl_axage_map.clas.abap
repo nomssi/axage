@@ -19,7 +19,7 @@ CLASS ycl_axage_map DEFINITION
       IMPORTING !input TYPE string_table.
 
     METHODS show
-      IMPORTING log TYPE REF TO ycl_axage_log
+      IMPORTING !log          TYPE REF TO ycl_axage_log
       RETURNING VALUE(result) TYPE string_table.
 
   PROTECTED SECTION.
@@ -29,29 +29,22 @@ CLASS ycl_axage_map DEFINITION
 ENDCLASS.
 
 
-
-CLASS YCL_AXAGE_MAP IMPLEMENTATION.
-
-
+CLASS ycl_axage_map IMPLEMENTATION.
   METHOD add_room.
     INSERT room INTO TABLE rooms.
   ENDMETHOD.
-
 
   METHOD constructor.
     me->no_exit = no_exit.
   ENDMETHOD.
 
-
   METHOD get_room.
     room = VALUE #( rooms[ table_line->name = to_upper( name ) ] DEFAULT no_exit ).
   ENDMETHOD.
 
-
   METHOD set_floor_plan.
     floor_plan = input.
   ENDMETHOD.
-
 
   METHOD show.
     result = floor_plan.

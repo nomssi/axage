@@ -245,10 +245,10 @@ CLASS lcl_side_effect IMPLEMENTATION.
     DATA ls_mapping TYPE ycl_axage=>ts_combine.
     DATA separator  TYPE string.
 
-    IF NOT ( validate( EXPORTING it_from = things_at_location( )
-                                 number_of_parameters = 2
-                       IMPORTING et_item = lt_thing )
-              AND lines( lt_thing ) > 1 ).
+    IF NOT (     validate( EXPORTING it_from = things_at_location( )
+                                     number_of_parameters = 2
+                           IMPORTING et_item = lt_thing )
+             AND lines( lt_thing ) > 1 ).
       RETURN.
     ENDIF.
     DATA(action_subject) = lt_thing[ 1 ].

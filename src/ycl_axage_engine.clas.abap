@@ -26,28 +26,19 @@ CLASS ycl_axage_engine DEFINITION INHERITING FROM ycl_axage_repository
                 can_be_dunked      TYPE abap_bool          DEFAULT abap_true
                 can_be_splashed    TYPE abap_bool          DEFAULT abap_true
                 can_weld           TYPE abap_bool          DEFAULT abap_false
-                background         TYPE string OPTIONAL
+                !background        TYPE string             OPTIONAL
       RETURNING VALUE(ro_thing)    TYPE REF TO ycl_axage_thing.
 
     METHODS clone_object
-      IMPORTING !name              TYPE clike
-                descr TYPE clike
-      RETURNING VALUE(ro_thing)    TYPE REF TO ycl_axage_thing.
+      IMPORTING !name           TYPE clike
+                descr           TYPE clike
+      RETURNING VALUE(ro_thing) TYPE REF TO ycl_axage_thing.
 
     METHODS combine
-      IMPORTING action type ycl_axage=>tv_action
-                object1 TYPE REF TO ycl_axage_thing
-                object2 TYPE REF TO ycl_axage_thing
-*                prefix             TYPE string             DEFAULT ycl_axage=>c_prefix
-*                can_be_pickup      TYPE abap_bool          DEFAULT abap_true
-*                can_be_drop        TYPE abap_bool          DEFAULT abap_true
-*                can_weld           TYPE abap_bool          DEFAULT abap_false
-*                can_be_weld        TYPE abap_bool          DEFAULT abap_false
-*                can_be_open        TYPE abap_bool          DEFAULT abap_false
-*                can_be_splash_into TYPE abap_bool          DEFAULT abap_false
-*                can_be_dunk_into   TYPE abap_bool          DEFAULT abap_false
-*                background         TYPE string OPTIONAL
-      EXPORTING es_mapping TYPE ycl_axage=>ts_combine
+      IMPORTING !action     TYPE ycl_axage=>tv_action
+                object1     TYPE REF TO ycl_axage_thing
+                object2     TYPE REF TO ycl_axage_thing
+      EXPORTING es_mapping  TYPE ycl_axage=>ts_combine
       RETURNING VALUE(done) TYPE abap_bool.
 
     METHODS new_spell
@@ -62,7 +53,7 @@ CLASS ycl_axage_engine DEFINITION INHERITING FROM ycl_axage_repository
                 descr       TYPE clike     OPTIONAL
                 !state      TYPE clike     OPTIONAL
                 dark        TYPE abap_bool OPTIONAL
-                background  TYPE string    OPTIONAL
+                !background TYPE string    OPTIONAL
                 cheat       TYPE string    OPTIONAL
       RETURNING VALUE(room) TYPE REF TO ycl_axage_room.
 
@@ -72,7 +63,7 @@ CLASS ycl_axage_engine DEFINITION INHERITING FROM ycl_axage_repository
                 !state       TYPE clike     OPTIONAL
                 location     TYPE REF TO ycl_axage_room
                 active       TYPE abap_bool DEFAULT abap_true
-                background   TYPE string OPTIONAL
+                !background  TYPE string    OPTIONAL
       RETURNING VALUE(actor) TYPE REF TO ycl_axage_actor.
 
     METHODS add_custom_command

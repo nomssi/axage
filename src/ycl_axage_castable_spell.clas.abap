@@ -88,8 +88,8 @@ CLASS YCL_AXAGE_CASTABLE_SPELL IMPLEMENTATION.
         ENDIF.
 
       WHEN OTHERS.
-        log->error_msg( title = 'CAST PORTA'
-                        subtitle = |CAST { name }|
+        log->error_msg( title = |CAST { name }|
+                        subtitle = |SPELL { name }|
                         description = |This { name } spell has no use.| ).
 
     ENDCASE.

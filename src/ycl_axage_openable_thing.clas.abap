@@ -16,7 +16,7 @@ CLASS ycl_axage_openable_thing DEFINITION
       IMPORTING !name              TYPE clike
                 descr              TYPE clike
                 !state             TYPE clike     OPTIONAL
-                prefix             TYPE string DEFAULT ycl_axage=>c_prefix
+                prefix             TYPE string    DEFAULT ycl_axage=>c_prefix
                 needed             TYPE REF TO ycl_axage_thing
                 content            TYPE REF TO ycl_axage_thing
                 repository         TYPE REF TO ycl_axage_repository
@@ -39,9 +39,8 @@ CLASS ycl_axage_openable_thing DEFINITION
   PRIVATE SECTION.
 ENDCLASS.
 
+
 CLASS ycl_axage_openable_thing IMPLEMENTATION.
-
-
   METHOD constructor.
     super->constructor(
       name  = name
@@ -58,7 +57,7 @@ CLASS ycl_axage_openable_thing IMPLEMENTATION.
          can_be_dunked = can_be_dunked
          can_be_dunked_into = can_be_dunked_into
          repository = repository ).
-    me->needed = needed.
+    me->needed  = needed.
     me->content = content.
   ENDMETHOD.
 
@@ -68,25 +67,24 @@ CLASS ycl_axage_openable_thing IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 
-
   METHOD is_open.
     result = opened.
   ENDMETHOD.
 
   METHOD details.
     DATA(dark) = abap_false.
-    IF location IS INSTANCE OF ycl_axage_room
-      AND CAST ycl_axage_room( location )->dark = abap_true.
+    IF     location IS INSTANCE OF ycl_axage_room
+       AND CAST ycl_axage_room( location )->dark  = abap_true.
       dark = abap_true.
     ENDIF.
 
-    IF needed->get_list( ) IS INITIAL AND dark EQ abap_false.
+    IF needed->get_list( ) IS INITIAL AND dark = abap_false.
       me->opened = abap_true.
     ENDIF.
   ENDMETHOD.
 
   METHOD open.
-    data allowed type abap_Bool.
+    DATA allowed TYPE abap_Bool.
 
     LOOP AT needed->get_list( ) INTO DATA(open_with).
       IF things->exists( open_with->name ).
@@ -94,7 +92,7 @@ CLASS ycl_axage_openable_thing IMPLEMENTATION.
         me->state = |You use the { open_with->name } to open the { name }|.
         log->add( me->state ).
         me->opened = abap_true.
-        EXIT. "from loop
+        EXIT. " from loop
       ENDIF.
     ENDLOOP.
 

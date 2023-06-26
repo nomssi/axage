@@ -1,31 +1,40 @@
-class YCL_AXAGE_DEMO1_UI definition
-  public
-  final
-  create public .
+CLASS ycl_axage_demo1_ui DEFINITION
+  PUBLIC
+  FINAL
+  CREATE PUBLIC.
 
-public section.
+  PUBLIC SECTION.
+    INTERFACES z2ui5_if_app.
 
-  interfaces IF_SERIALIZABLE_OBJECT .
-  interfaces Z2UI5_IF_APP .
+    DATA command  TYPE string.
+    DATA results  TYPE string.
+    DATA help     TYPE string.
 
-  data COMMAND type STRING .
-  data RESULTS type STRING .
-  data HELP type STRING .
-  PROTECTED SECTION.
+    DATA messages TYPE ycl_axage_log=>tt_msg.
+
   PRIVATE SECTION.
-    DATA bill_developer TYPE REF TO ycl_axage_actor.
+    CONSTANTS c_id_command TYPE string VALUE 'id_command'.
+
+    DATA:
+      BEGIN OF app,
+        client            TYPE REF TO z2ui5_if_client,
+        anzahl_items      TYPE string,
+        check_initialized TYPE abap_bool,
+        main_view         TYPE string,
+        s_get             TYPE z2ui5_if_client=>ty_s_get,
+      END OF app.
+
+    DATA bill_developer  TYPE REF TO ycl_axage_actor.
     DATA mark_consultant TYPE REF TO ycl_axage_actor.
-    DATA engine TYPE REF TO ycl_axage_engine.
-    DATA check_initialized TYPE abap_bool.
+    DATA engine          TYPE REF TO ycl_axage_engine.
+
     METHODS init_game.
+    METHODS execute IMPORTING !command TYPE string.
 ENDCLASS.
 
 
-
-CLASS YCL_AXAGE_DEMO1_UI IMPLEMENTATION.
-
-
-  METHOD INIT_GAME.
+CLASS ycl_axage_demo1_ui IMPLEMENTATION.
+  METHOD init_game.
     engine = NEW #( ).
     DATA(entrance)   = engine->new_room( name = 'Entrance' descr = 'You are in the entrance area. Welcome.' ).
     DATA(developer)  = engine->new_room( name = 'Developers office' descr = 'The developers area. be quiet!' ).
@@ -87,49 +96,138 @@ CLASS YCL_AXAGE_DEMO1_UI IMPLEMENTATION.
     mark_consultant->add_sentences( VALUE #(
       ( |Hello, My name is Mark and I am an SAP consultant| )
       ( |You can ask me anything about SAP processes.| ) ) ).
-
   ENDMETHOD.
 
+  METHOD execute.
+    DATA(log) = engine->interprete( command = command
+                                    auto_look = abap_false ).
 
-  METHOD Z2UI5_IF_APP~MAIN.
-    IF check_initialized = abap_false.
-      check_initialized = abap_true.
+    IF engine->mission_completed = abap_true.
+
+      DATA(guild) = engine->new_room( name = 'Guild'
+                                      descr = 'the Wizard''s Guild'
+                                      state = 'recognized as a full wizard.' ).
+
+      engine->player->location = guild.
+      log->success_msg( title = 'Mission completed'
+                        subtitle = 'You did it!'
+                        description = 'Congratulations! You delivered the RFC to the developers!'  ).
+    ENDIF.
+
+    messages = log->t_msg.
+    results = log->get( ).
+  ENDMETHOD.
+
+  METHOD z2ui5_if_app~main.
+    app-client = client.
+    app-s_get  = client->get( ).
+
+    IF app-check_initialized = abap_false.
+      app-check_initialized = abap_true.
+      app-anzahl_items = '0'.
+
       command = 'MAP'.
-      init_game(  ).
+      init_game( ).
       help = engine->interprete( 'HELP' )->get( ).
 
     ENDIF.
 
-
     CASE client->get( )-event.
+      WHEN 'LOOK' OR 'INV' OR 'MAP' OR 'UP'
+        OR 'DOWN' OR 'NORTH' OR 'SOUTH' OR 'EAST' OR 'WEST'
+        OR 'HELP'.
+        execute( client->get( )-event ).
+
       WHEN 'BUTTON_POST'.
-        client->popup_message_toast( |{ command } - send to the server| ).
+        client->message_toast_display( |{ command } - send to the server| ).
         DATA(result) = engine->interprete( command ).
         result->add( |You are in the { engine->player->location->name }.| ).
 
-        IF engine->player->location->exists( 'RFC' )
-          AND engine->player->location->name = bill_developer->location->name.
+        IF     engine->player->location->exists( 'RFC' )
+           AND engine->player->location->name = bill_developer->location->name.
           engine->mission_completed = abap_true.
           result->add( 'Congratulations! You delivered the RFC to the developers!' ).
         ENDIF.
-        results = |{ result->get(  ) } \n | &&  results.
+        results = |{ result->get( ) } \n | && results.
 
       WHEN 'BACK'.
         client->nav_app_leave( client->get_app( client->get( )-id_prev_app_stack  ) ).
     ENDCASE.
 
-    DATA(view) = z2ui5_cl_xml_view=>factory( )->shell( ).
+    DATA(view) = z2ui5_cl_xml_view=>factory( client )->shell( ).
+
     DATA(page) = view->page(
+      id             = 'id_page'
       title          = 'abap2UI5 and AXAGE - ABAP teX Adventure #1'
       navbuttonpress = client->_event( 'BACK' )
-      shownavbutton  = abap_false
-    ).
+      shownavbutton  = abap_true ).
+
+
     page->header_content(
-         )->link(
+      )->toolbar(        " )->overflow_toolbar(
+        )->button(
+            text  = 'Look'
+            press = client->_event( 'LOOK' )
+            icon  = 'sap-icon://show'
+        )->button(
+             text = 'Map'
+             press = client->_event( 'MAP' )
+             icon  = 'sap-icon://map-2'
+        )->button( text = 'Inventory'
+                   class = 'sapUiTinyMarginBeginEnd'
+                   press = client->_event( 'INV' )
+                   icon = 'sap-icon://menu'
+             )->get( )->custom_data(
+                        )->badge_custom_data(
+                            key     = 'items'
+                            value   = app-anzahl_items
+                            visible = abap_true
+        )->get_parent( )->get_parent(
+        )->button(
+           text  = 'Profile'
+           icon  = 'sap-icon://account'
+           press = client->_event( 'POPUP_SETUP_PLAYER' )
+
+        )->toolbar_spacer(
+
+        )->button(
+             text = 'UP'
+             press = client->_event( 'UP' )
+             icon  = 'sap-icon://arrow-top'
+        )->button(
+             text = 'DOWN'
+             press = client->_event( 'DOWN' )
+             icon  = 'sap-icon://arrow-bottom'
+        )->button(
+             text = 'North'
+             press = client->_event( 'NORTH' )
+             icon  = 'sap-icon://navigation-up-arrow'
+        )->button(
+             text = 'South'
+             press = client->_event( 'SOUTH' )
+             icon  = 'sap-icon://navigation-down-arrow'
+        )->button(
+             text = 'West'
+             press = client->_event( 'WEST' )
+             icon  = 'sap-icon://navigation-left-arrow'
+        )->button(
+             text = 'East'
+             press = client->_event( 'EAST' )
+             icon  = 'sap-icon://navigation-right-arrow'
+
+        )->button(
+             text = 'Help'
+             press = client->_event( 'HELP' )
+             icon  = 'sap-icon://sys-help'
+
+        )->link(
              text = 'Source_Code'
-             href = z2ui5_cl_xml_view=>hlp_get_source_code_url( app = me )
+             href = view->hlp_get_source_code_url( )
              target = '_blank'
-     ).
+
+       )->get_parent( ).
+
+
 
     DATA(grid) = page->grid( 'L12 M12 S12' )->content( 'layout' ).
     grid->simple_form(
@@ -139,7 +237,7 @@ CLASS YCL_AXAGE_DEMO1_UI IMPLEMENTATION.
             )->label( 'Command'
             )->input( placeholder = 'enter next command'
                       submit = client->_event( 'BUTTON_POST' )
-                      value =  client->_bind( command )
+                      value =  client->_bind_edit( command )
             )->button(
                 text  = 'Execute Command'
                 press = client->_event( 'BUTTON_POST' ) ).
@@ -149,9 +247,8 @@ CLASS YCL_AXAGE_DEMO1_UI IMPLEMENTATION.
         )->code_editor( value = client->_bind( results ) editable = 'false' type = `plain_text`
                       height = '600px'
         )->text_area( value = client->_bind( help ) editable = 'false' growingmaxlines = '40' growing = abap_True
-                      height = '600px'
-        ).
-    client->set_next( VALUE #( xml_main = page->get_root( )->xml_get( ) ) ).
+                      height = '600px' ).
 
+    client->view_display( view->stringify( ) ).
   ENDMETHOD.
 ENDCLASS.

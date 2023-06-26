@@ -5,6 +5,7 @@ CLASS ycl_axage_log DEFINITION
 
   PUBLIC SECTION.
     CONSTANTS c_group TYPE string VALUE space.
+
     TYPES:
       BEGIN OF ty_msg,
         type        TYPE string,
@@ -23,14 +24,17 @@ CLASS ycl_axage_log DEFINITION
       IMPORTING !title       TYPE string
                 subtitle     TYPE string
                 !description TYPE string.
+
     METHODS warning_msg
       IMPORTING !title       TYPE string
                 subtitle     TYPE string
                 !description TYPE string.
+
     METHODS success_msg
       IMPORTING !title       TYPE string
                 subtitle     TYPE string
                 !description TYPE string.
+
     METHODS error_msg
       IMPORTING !title       TYPE string
                 subtitle     TYPE string

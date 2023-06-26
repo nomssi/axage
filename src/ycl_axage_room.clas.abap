@@ -1,59 +1,58 @@
 CLASS ycl_axage_room DEFINITION INHERITING FROM ycl_axage_thing
   PUBLIC
   FINAL
-  CREATE PUBLIC .
+  CREATE PUBLIC.
 
   PUBLIC SECTION.
-    DATA north TYPE REF TO ycl_axage_room.
-    DATA east TYPE REF TO ycl_axage_room.
-    DATA south TYPE REF TO ycl_axage_room.
-    DATA west TYPE REF TO ycl_axage_room.
-    DATA up TYPE REF TO ycl_axage_room.
-    DATA down TYPE REF TO ycl_axage_room.
+    DATA north   TYPE REF TO ycl_axage_room.
+    DATA east    TYPE REF TO ycl_axage_room.
+    DATA south   TYPE REF TO ycl_axage_room.
+    DATA west    TYPE REF TO ycl_axage_room.
+    DATA up      TYPE REF TO ycl_axage_room.
+    DATA down    TYPE REF TO ycl_axage_room.
     DATA no_exit TYPE REF TO ycl_axage_room.
 
-    DATA dark TYPE abap_bool.
-    DATA cheat TYPE string READ-ONLY.
+    DATA dark    TYPE abap_bool.
+    DATA cheat   TYPE string READ-ONLY.
 
     METHODS get_image RETURNING VALUE(data) TYPE string.
+
     METHODS constructor
-      IMPORTING
-        name  TYPE clike
-        descr TYPE clike
-        state TYPE clike OPTIONAL
-        dark TYPE abap_bool OPTIONAL
-        background TYPE string OPTIONAL
-        cheat TYPE string OPTIONAL
-        repository TYPE REF TO ycl_axage_repository
-        no_exit TYPE REF TO ycl_axage_room.
+      IMPORTING !name       TYPE clike
+                descr       TYPE clike
+                !state      TYPE clike     OPTIONAL
+                dark        TYPE abap_bool OPTIONAL
+                !background TYPE string    OPTIONAL
+                cheat       TYPE string    OPTIONAL
+                repository  TYPE REF TO ycl_axage_repository
+                no_exit     TYPE REF TO ycl_axage_room.
+
     METHODS set_exits
-      IMPORTING
-        u TYPE REF TO ycl_axage_room OPTIONAL
-        d TYPE REF TO ycl_axage_room OPTIONAL
-        n TYPE REF TO ycl_axage_room OPTIONAL
-        e TYPE REF TO ycl_axage_room OPTIONAL
-        s TYPE REF TO ycl_axage_room OPTIONAL
-        w TYPE REF TO ycl_axage_room OPTIONAL.
+      IMPORTING u  TYPE REF TO ycl_axage_room OPTIONAL
+                !d TYPE REF TO ycl_axage_room OPTIONAL
+                !n TYPE REF TO ycl_axage_room OPTIONAL
+                !e TYPE REF TO ycl_axage_room OPTIONAL
+                !s TYPE REF TO ycl_axage_room OPTIONAL
+                w  TYPE REF TO ycl_axage_room OPTIONAL.
 
     METHODS look_around
-      IMPORTING log TYPE REF TO ycl_axage_log.
+      IMPORTING !log TYPE REF TO ycl_axage_log.
 
   PROTECTED SECTION.
     METHODS set_exit
-      IMPORTING
-        room        TYPE REF TO ycl_axage_room
-      RETURNING
-        VALUE(exit) TYPE REF TO ycl_axage_room.
+      IMPORTING room        TYPE REF TO ycl_axage_room
+      RETURNING VALUE(exit) TYPE REF TO ycl_axage_room.
 
     METHODS add_exits
       RETURNING VALUE(way_out) TYPE string_table.
+
   PRIVATE SECTION.
 ENDCLASS.
 
-CLASS ycl_axage_room IMPLEMENTATION.
 
+CLASS ycl_axage_room IMPLEMENTATION.
   METHOD get_image.
-    IF dark EQ abap_false.
+    IF dark = abap_false.
       data = background.
     ENDIF.
   ENDMETHOD.
@@ -71,11 +70,10 @@ CLASS ycl_axage_room IMPLEMENTATION.
                         can_be_splashed = abap_false
                         can_be_splashed_on = abap_false ).
 
-    me->dark       = dark.
+    me->dark    = dark.
     me->no_exit = no_exit.
-    me->cheat = cheat.
+    me->cheat   = cheat.
   ENDMETHOD.
-
 
   METHOD set_exit.
     IF room IS BOUND.
@@ -84,7 +82,6 @@ CLASS ycl_axage_room IMPLEMENTATION.
       exit = no_exit.
     ENDIF.
   ENDMETHOD.
-
 
   METHOD set_exits.
     north = set_exit( n ).
@@ -112,9 +109,11 @@ CLASS ycl_axage_room IMPLEMENTATION.
     ELSE.
       APPEND |You see| TO lt_msg.
 
-      LOOP AT index_list into DATA(idx).
+      LOOP AT index_list INTO DATA(idx).
         DATA(thing) = repository->all_things[ idx ].
-        CHECK thing->type <> c_type_node.
+        IF thing->type = c_type_node.
+          CONTINUE.
+        ENDIF.
         APPEND thing->describe( ) TO lt_msg.
       ENDLOOP.
     ENDIF.
@@ -148,5 +147,4 @@ CLASS ycl_axage_room IMPLEMENTATION.
       APPEND 'There is a ladder going downstairs' TO way_out.
     ENDIF.
   ENDMETHOD.
-
 ENDCLASS.
