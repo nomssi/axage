@@ -134,9 +134,12 @@ CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
 
     IF engine->mission_completed = abap_true.
 
-      DATA(guild) = engine->new_room( name = 'Wizard''s Guild'
-                                      descr = 'the Guild''s decret.'
-                                      background = lcl_images=>congratulation( ) ).
+      DATA(guild) = engine->new_room( name = 'Guild'
+                                      descr = 'the Wizard''s Guild'
+                                      state = 'recognized as a full wizard.'
+                                      background = lcl_images=>congratulation( )
+                                      cheat = lcl_texts=>cheat_hint( 'GUILD' ) ).
+
       engine->player->location = guild.
       log->success_msg( title = 'Mission completed'
                         subtitle = 'You did it!'
@@ -287,6 +290,9 @@ CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
     DATA(content_of_tome) = engine->new_node( 'BookContent' ).
     content_of_tome->add( engine->new_spell( name = 'LUMI' prefix = ''
        descr = '"Illuminara", a spell which can light up dark places.' ) ).
+    content_of_tome->add( engine->new_spell( name = 'PORTA' prefix = ''
+       descr = '"Portallis", a spell which opens a portal.' ) ).
+
     DATA(tome) = NEW ycl_axage_openable_thing(
       name    = 'SPELLBOOK'
       descr   = 'Magic Tome with arcane spells'
@@ -349,7 +355,7 @@ CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
 
     DATA(chest) = NEW ycl_axage_openable_thing( name = 'CHEST'
                            descr = 'large'
-                           state = 'closed'
+                           state = 'open'
                            repository = engine
                            can_be_open = abap_true
                            can_be_pickup = abap_false

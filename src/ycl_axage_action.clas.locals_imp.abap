@@ -265,7 +265,7 @@ CLASS lcl_side_effect IMPLEMENTATION.
       CASE ls_mapping-category.
         WHEN ycl_axage=>c_combine_category_on.
           separator = 'on'.
-          engine->player->delete_by_name( action_subject->name ).
+          engine->player->delete_by_name( action_object->name ).
 
         WHEN ycl_axage=>c_combine_category_into.
           separator = 'into'.

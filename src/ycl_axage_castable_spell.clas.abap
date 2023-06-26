@@ -53,26 +53,44 @@ CLASS YCL_AXAGE_CASTABLE_SPELL IMPLEMENTATION.
   METHOD execute.
 
     IF yif_axage_command~category NE yif_axage_command=>c_spell.
-      log->add( |{ name } is not a spell.| ).
+      log->error_msg( title = |CAST { name }|
+                      subtitle = ''
+                      description = |{ name } is not a spell.| ).
       RETURN.
     ENDIF.
 
-    log->add( |You cast the spell { me->describe( ) }| ).
+    DATA(player) = engine->player.
+
     CASE name.
       WHEN 'LUMI'.
-        DATA(player) = engine->player.
         DATA(location) = player->location.
         IF location->dark = abap_true.
           location->dark = abap_false.
           location->state = 'illuminated'.
-          log->add( |{ location->describe( ) }.| ).
+          log->success_msg( title = 'CAST LUMI'
+                            subtitle = |You cast the spell { me->describe( ) }|
+                            description = |{ location->describe( ) }.| ).
+        ELSE.
+          log->info_msg( title = 'CAST LUMI'
+                         subtitle = |The space has already light|
+                         description = |{ location->describe( ) }.| ).
         ENDIF.
-      WHEN 'PORT'.
-        engine->mission_completed = abap_true.
-        log->add( |You go through a portal to the Wizard's Guild.| ).
+      WHEN 'PORTA'.
+        IF player->exists( 'MOONSTAFF' ).
+          engine->mission_completed = abap_true.
+          log->success_msg( title = 'CAST PORTA'
+                            subtitle = |You cast the spell { me->describe( ) }|
+                            description = |You go through a portal to the Wizard's Guild.| ).
+        ELSE.
+          log->error_msg( title = 'CAST PORTA'
+                          subtitle = |You cast the spell { me->describe( ) }|
+                          description = |You can only cast "Portallis" by using the Staff of Eternal Moon| ).
+        ENDIF.
 
       WHEN OTHERS.
-        log->add( |This { name } spell is useless.| ).
+        log->error_msg( title = 'CAST PORTA'
+                        subtitle = |CAST { name }|
+                        description = |This { name } spell has no use.| ).
 
     ENDCASE.
 

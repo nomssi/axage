@@ -28,6 +28,7 @@ CLASS lcl_images DEFINITION.
 ENDCLASS.
 
 CLASS lcl_texts IMPLEMENTATION.
+
   METHOD hint.
       CASE to_upper( condense( location ) ).
       WHEN 'ATTIC'.
@@ -40,10 +41,22 @@ CLASS lcl_texts IMPLEMENTATION.
         result = |A magical garden with vibrant and exotic plants glowing with enchantment.|.
 
       WHEN 'POND'.
-       result = |A small, mysterious pond sits quietly at one corner, reflecting the twinkling stars above.|.
+        result = |A small, mysterious pond sits quietly at one corner, reflecting the twinkling stars above.|.
+
+      WHEN 'GUILD'.
+        result = |<em>Esteemed Wizard Apprentice,</em>| &&
+            |<p>| &&
+            |You have proven your mastery of the arcane arts by obtaining three magical items:| &&
+            |<ul>| &&
+            |<li>the Orb of Sunlight,| &&
+            |<li>the Potion of Infinite Stars, and| &&
+            |<li>the Staff of Eternal Moon.| &&
+            |</ul>| &&
+            |The Wizard's Guild now recognize you as a full Wizard.<p>| &&
+            |Welcome!|.
 
       WHEN OTHERS.
-    result = |<em>Esteemed Wizard Apprentice,</em>| &&
+        result = |<em>Esteemed Wizard Apprentice,</em>| &&
             |<p>| &&
             |You must prove your mastery of the arcane arts by obtaining three magical items:| &&
             |<ul>| &&
@@ -65,6 +78,8 @@ CLASS lcl_texts IMPLEMENTATION.
         result = result && |You know you can weld sunflower with ashes, don't you?|.
       WHEN 'ATTIC'.
         result = result && |You remember how to dunk a staff in a magical potion to infuse magic, don't you?|.
+      WHEN 'GUILD'.
+        result = result && |You don't need hints any more, do you?|.
     ENDCASE.
   ENDMETHOD.
 
