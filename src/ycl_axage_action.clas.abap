@@ -153,7 +153,9 @@ CLASS YCL_AXAGE_ACTION IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD validate.
+    DATA text    TYPE string.
     DATA lo_item TYPE REF TO ycl_axage_thing.
+    DATA lo_from TYPE REF TO ycl_axage_thing.
 
     valid = abap_false.
     CLEAR et_item.
@@ -165,14 +167,18 @@ CLASS YCL_AXAGE_ACTION IMPLEMENTATION.
     DATA(location_name) = engine->player->location->name.
 
     LOOP AT objects INTO DATA(apply_to_object).
-      LOOP AT it_from INTO DATA(from_idx).
-        DATA(from) = CAST ycl_axage_repository( engine )->at_index( from_idx ).
-        IF from IS BOUND AND from->name = apply_to_object.
-          lo_item = from.
-          EXIT.
+      CLEAR text.
+      lo_item = engine->by_name( EXPORTING name = apply_to_object
+                                           it_index = it_from
+                                 IMPORTING from = lo_from ).
+      IF lo_item IS NOT BOUND.
+        IF lo_from IS BOUND AND lo_from->get_list( ) IS INITIAL.
+          text = |{ operation } is not applicable to { apply_to_object } right now...|.
+        ELSE.
+          text = |There is no { apply_to_object } you can { operation }|.
         ENDIF.
-      ENDLOOP.
-      IF lo_item IS BOUND.
+
+      ELSE.
 
         IF    line_exists( lo_item->subject_to[ table_line = operation ] )
            OR line_exists( lo_item->object_of[ table_line = operation ] )
@@ -181,21 +187,21 @@ CLASS YCL_AXAGE_ACTION IMPLEMENTATION.
           INSERT lo_item INTO TABLE et_item.
           title = title && | { apply_to_object }|.
         ELSE.
-          log->error_msg( title = title && | { apply_to_object }|
-                          subtitle = location_name
-                          description = |{ operation } is not allowed for a { apply_to_object }| ).
+          text = |{ operation } is not allowed for a { apply_to_object }|.
         ENDIF.
-      ELSEIF from IS BOUND AND from->get_list( ) IS INITIAL.
-        log->error_msg( title = title && | { apply_to_object }|
-                        subtitle = location_name
-                        description = |{ operation } is not applicable to { apply_to_object } right now...| ).
-      ELSE.
-        log->error_msg( title = title && | { apply_to_object }|
-                        subtitle = location_name
-                        description = |There is no { apply_to_object } you can { operation }| ).
+
       ENDIF.
+
+      IF text IS NOT INITIAL.
+        log->error_msg( title = title && | { apply_to_object }|
+                        subtitle = location_name
+                        description = text ).
+        DELETE objects.  " future success message should not contains error parameter
+      ENDIF.
+
     ENDLOOP.
   ENDMETHOD.
+
 
   METHOD error.
     log->error_msg( title = |{ operation } { concat_lines_of( table = objects sep = ` ` ) }|

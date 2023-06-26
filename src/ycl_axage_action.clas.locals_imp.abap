@@ -343,6 +343,7 @@ CLASS lcl_look DEFINITION INHERITING FROM ycl_axage_action.
 ENDCLASS.
 
 CLASS lcl_look IMPLEMENTATION.
+
   METHOD execute.
     DATA lt_item TYPE tt_thing.
 
@@ -371,32 +372,34 @@ CLASS lcl_look IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD details.
-    DATA lt_msg TYPE string_table.
     DATA lv_msg TYPE string.
+    DATA lt_msg TYPE string_table.
 
     done = abap_false.
     lv_msg = |You see { object->describe( ) }\n|.
 
-    IF object IS NOT INSTANCE OF yif_axage_openable.
-      success( lv_msg ).
-      RETURN.
+    IF object IS INSTANCE OF yif_axage_openable.
+      DATA(container) = CAST yif_axage_openable( object ).
+      container->details( engine->player->location ).
+
+      IF container->is_open( ).
+
+        APPEND lv_msg TO lt_msg.
+        LOOP AT container->get_content( )->get_list( ) INTO DATA(content).
+          engine->player->location->add( content ).
+          APPEND content->describe( ) TO lt_msg.
+        ENDLOOP.
+
+        lv_msg = |You look at details of { object->name }:\n{
+                     concat_lines_of( table = lt_msg sep = |\n| ) }|.
+      ENDIF.
     ENDIF.
 
-    DATA(container) = CAST yif_axage_openable( object ).
-    container->details( engine->player->location ).
-    IF NOT container->is_open( ).
-      success( lv_msg ).
-      RETURN.
-    ENDIF.
-
-    APPEND lv_msg TO lt_msg.
-    LOOP AT container->get_content( )->get_list( ) INTO DATA(content).
-      engine->player->location->add( content ).
-      APPEND content->describe( ) TO lt_msg.
-    ENDLOOP.
-
-    success( |You look at details of { object->name }:\n{
-                concat_lines_of( table = lt_msg sep = |\n| ) }| ).
+    " do not use success( ) as it would concatenate all parameters;
+    " instead we display only the current parameter (object->name) in the title
+    log->success_msg( title = |{ operation } { object->name }|
+                      subtitle = engine->player->location->name
+                      description = lv_msg ).
   ENDMETHOD.
 
 ENDCLASS.

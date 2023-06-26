@@ -172,7 +172,7 @@ CLASS YCL_AXAGE_THING IMPLEMENTATION.
 
 
   METHOD at_index.
-    thing = repository->at_index( index ).
+    thing = repository->by_index( index ).
   ENDMETHOD.
 
 
