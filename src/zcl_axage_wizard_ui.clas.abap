@@ -7,7 +7,7 @@ CLASS zcl_axage_wizard_ui DEFINITION
     INTERFACES z2ui5_if_app.
 
     DATA command          TYPE string.
-    DATA auto_look        TYPE xsdboolean VALUE abap_true.
+    DATA auto_look        TYPE abap_bool VALUE abap_true.
     DATA anzahl_items     TYPE string     VALUE '0'.
     DATA results          TYPE string.
     DATA help             TYPE string.
@@ -52,10 +52,9 @@ CLASS zcl_axage_wizard_ui DEFINITION
       BEGIN OF app,
         client            TYPE REF TO z2ui5_if_client,
         check_initialized TYPE abap_bool,
-        view_main         TYPE string,
-        view_popup        TYPE string,
+        main_view         TYPE string,
+        popup_view        TYPE string,
         s_get             TYPE z2ui5_if_client=>ty_s_get,
-        s_next            TYPE z2ui5_if_client=>ty_s_next,
       END OF app.
 
     DATA mv_popup_name TYPE string.
@@ -506,29 +505,39 @@ CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
 
 
   METHOD set_focus.
-    app-s_next-s_cursor  = VALUE #( BASE app-s_next-s_cursor
-                                    id = c_id_command
-                                    cursorpos = '1'
-                                    selectionstart = '1'
-                                    selectionend = '1' ).
+    app-client->cursor_set(  VALUE #( id = c_id_command
+                                      cursorpos = '1'
+                                      selectionstart = '1'
+                                      selectionend = '1' ) ).
   ENDMETHOD.
 
 
   METHOD view_popup_input.
 
-    DATA(popup) = Z2UI5_CL_XML_VIEW=>factory_popup(
-       )->dialog(
+    DATA(popup) = Z2UI5_CL_XML_VIEW=>factory_popup( client ).
+    popup->dialog(
        "contentheight = '200px'
        contentwidth  = '500px'
        title = 'Player Profile'
+       icon = 'sap-icon://account'
        )->content(
            )->simple_form(
                )->label( 'Guild Aspirant''s Name'
-               )->input( value = client->_bind( player_name )
+               )->input( value = client->_bind_edit( player_name )
                          submit = client->_event( 'BUTTON_PLAYER_CONFIRM' )
        )->get_parent( )->get_parent(
        )->footer( )->overflow_toolbar(
            )->toolbar_spacer(
+           )->button(
+               text  = 'Save'
+               press = client->_event( 'BUTTON_GAME_SAVE' )
+               icon  = 'sap-icon://save'
+               enabled = abap_false
+           )->button(
+               text  = 'Load'
+               press = client->_event( 'BUTTON_GAME_LOAD' )
+               icon  = 'sap-icon://load'
+               enabled = abap_false
            )->button(
                text  = 'Cancel'
                press = client->_event( 'BUTTON_PLAYER_CANCEL' )
@@ -539,7 +548,7 @@ CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
                type  = 'Emphasized'
                icon  = 'sap-icon://accept' ).
 
-    app-s_next-xml_popup = popup->get_root( )->xml_get( ).
+    client->popup_display( popup->stringify( ) ).
 
   ENDMETHOD.
 
@@ -568,7 +577,7 @@ CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
         execute( client->get( )-event ).
 
       WHEN 'BUTTON_POST'.
-        client->popup_message_toast( |{ command } - send to the server| ).
+        client->message_toast_display( |{ command } - send to the server| ).
         execute( command ).
         set_focus( ).
 
@@ -580,14 +589,18 @@ CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
         engine->player->name = player_name.
 
       WHEN 'BUTTON_PLAYER_CANCEL'.
-        client->popup_message_toast( 'Player Setup - Cancel pressed' ).
+        client->message_toast_display( 'Player Setup - Cancel pressed' ).
+
+      WHEN 'BUTTON_GAME_SAVE'.
+
+      WHEN 'BUTTON_GAME_LOAD'.
 
       WHEN 'BACK'.
         client->nav_app_leave( client->get_app( client->get( )-id_prev_app_stack  ) ).
     ENDCASE.
 
-    DATA(view) = z2ui5_cl_xml_view=>factory( )->shell( ).
-    DATA(page) = view->page(
+    DATA(lo_main) = z2ui5_cl_xml_view=>factory( client )->shell( ).
+    DATA(page) = lo_main->page(
       id =           'id_page'
       title          = 'The Wizard''s Adventure Game'
       navbuttonpress = client->_event( 'BACK' )
@@ -701,7 +714,7 @@ CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
         )->content( 'form'
             )->label( 'Always Look'
               )->switch(
-              state         = client->_bind( auto_look )
+              state         = client->_bind_edit( auto_look )
               customtexton  = 'Yes'
               customtextoff = 'No'
 
@@ -710,9 +723,9 @@ CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
                     id              = c_id_command
                     showClearIcon   = abap_true
                     submit          = client->_event( `BUTTON_POST` )
-                    value           = client->_bind( command )
+                    value           = client->_bind_edit( command )
                     placeholder     = 'enter your next command'
-                    suggestionitems = client->_bind_one( mt_suggestion )
+                    suggestionitems = client->_bind( mt_suggestion )
                     showsuggestion  = abap_true )->get(
 
                         )->suggestion_items( )->get(
@@ -771,8 +784,7 @@ CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
          )->vbox( 'sapUiSmallMargin'
                 )->formatted_text( formatted_text ).
 
-    page->footer(
-            )->overflow_toolbar(
+    page->footer( )->overflow_toolbar(
         )->button(
             text  = 'Pickup'
             press = client->_event( 'PICKUP' )
@@ -798,10 +810,10 @@ CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
             press = client->_event( 'CAST' )
             enabled = abap_false
             icon = 'sap-icon://activate'
-*        )->button(
-*            text  = 'Weld'
-*            press = client->_event( 'WELD' )
-*            enabled = abap_true
+        )->button(
+            text  = 'Weld'
+            press = client->_event( 'WELD' )
+            enabled = abap_false
                 )->toolbar_spacer(
         )->link(
              text = 'Credits'
@@ -816,7 +828,6 @@ CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
              text = 'Land Of Lisp'
              href  = 'http://landoflisp.com' ).
 
-    app-s_next-xml_main = page->get_root( )->xml_get( ).
 
     CASE mv_popup_name.
 
@@ -826,9 +837,7 @@ CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
     ENDCASE.
 
     set_focus( ).
-    client->set_next( app-s_next ).
+    client->view_display( lo_main->stringify( ) ).
 
-    app-view_popup = ``.
-    CLEAR app-s_next.
   ENDMETHOD.
 ENDCLASS.
