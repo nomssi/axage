@@ -100,30 +100,30 @@ CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
 
       |<h2>Help</h2><p>| &
       |<h3>Navigation</h3><ul>| &&
-      |<li>MAP        <em>Show map/ floor plan/ world</em>| &&
-      |<li>N or NORTH <em>Walk to the room on the north side</em>| &&
-      |<li>E or EAST  <em>Walk to the room on the east side</em>| &&
-      `<li>S or SOUTH <em>Walk to the room on the south side</em>` &&
-      `<li>W or WEST  <em>Walk to the room on the west side</em>` &&
-      `<li>U or UP    <em>Go to the room upstairs</em>` &&
-      `<li>D or DOWN  <em>Go to the room downstairs</em></ul><p>`.
+      |<li>MAP        <em>Show map/floor plan/world.</em>| &&
+      |<li>N or NORTH <em>Walk to the room on the north side.</em>| &&
+      |<li>E or EAST  <em>Walk to the room on the east side.</em>| &&
+      `<li>S or SOUTH <em>Walk to the room on the south side.</em>` &&
+      `<li>W or WEST  <em>Walk to the room on the west side.</em>` &&
+      `<li>U or UP    <em>Go to the room upstairs.</em>` &&
+      `<li>D or DOWN  <em>Go to the room downstairs.</em></ul><p>`.
 
       result = result &&
       |<h3>Interaction</h3>| &&
-      |<ul><li>INV or INVENTORY <em>View everything you are carrying</em>| &&
-      `<li>LOOK <em>Describe your environment</em>` &&
-      `<li>LOOK object     <em>Have a closer look at the object in the room or in your inventory</em>` &&
-      `<li>PICKUP object   (or TAKE) <em>Pickup an object in the current place</em>` &&
-      `<li>DROP object     <em>Drop an object that you carry</em>` &&
-      `<li>OPEN object     <em>Open something that is in the room</em></ul><p>`.
+      |<ul><li>INV or INVENTORY <em>View everything you are carrying.</em>| &&
+      `<li>LOOK <em>Describe your environment.</em>` &&
+      `<li>LOOK object     <em>Have a closer look at the object in the room or in your inventory.</em>` &&
+      `<li>PICKUP object   (or TAKE) <em>Pickup an object in the current place.</em>` &&
+      `<li>DROP object     <em>Drop an object that you carry.</em>` &&
+      `<li>OPEN object     <em>Open something that is in the room.</em></ul><p>`.
 
       result = result &&
       |<h3>Other</h3><ul>| &&
-      `<li>ASK person            <em>Ask a person to tell you something</em>` &&
-      `<li>CAST spell            <em>Cast a spell you have learned before</em>` &&
-      `<li>WELD subject object   <em>Weld subject to the object if allowed</em>` &&
-      `<li>DUNK subject object   <em>Dunk subject into object if allowed</em>` &&
-      `<li>SPLASH subject object <em>Splash  subject into object</em></ul>`.
+      `<li>ASK person            <em>Ask a person to tell you something.</em>` &&
+      `<li>CAST spell            <em>Cast a spell you have learned before.</em>` &&
+      `<li>WELD subject object   <em>Weld subject to the object if allowed.</em>` &&
+      `<li>DUNK subject object   <em>Dunk subject into object if allowed.</em>` &&
+      `<li>SPLASH subject object <em>Splash  subject into object.</em></ul>`.
 
   ENDMETHOD.
 
@@ -143,7 +143,7 @@ CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
       engine->player->location = guild.
       log->success_msg( title = 'Mission completed'
                         subtitle = 'You did it!'
-                        description = |Congratulations, you are now a member of the Wizard's Guild.| ).
+                        description = lcl_texts=>congratulation(  )  ).
     ENDIF.
 
     current_location = |<h4>You are in { engine->player->location->description }</h4>|.

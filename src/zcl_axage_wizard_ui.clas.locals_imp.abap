@@ -9,7 +9,8 @@ CLASS lcl_texts DEFINITION.
       hint IMPORTING location TYPE string OPTIONAL
            RETURNING VALUE(result) TYPE string,
       cheat_hint IMPORTING location TYPE string
-                 RETURNING VALUE(result) TYPE string.
+                 RETURNING VALUE(result) TYPE string,
+      congratulation RETURNING VALUE(result) TYPE string.
 
 ENDCLASS.
 
@@ -94,6 +95,42 @@ CLASS lcl_texts IMPLEMENTATION.
          |May Eldoria guide you.\n| &&
          |\n| &&
          |Yours in magic\n| .
+  ENDMETHOD.
+
+  METHOD congratulation.
+    result =
+|Congratulations, valiant apprentice wizard, on the completion of your momentous quest! | &&
+|Through countless trials and formidable challenges, you have demonstrated unwavering | &&
+|determination, courage, and an indomitable spirit. Your journey has led you to the pinnacle | &&
+|of magical mastery, and now, as you stand before the shimmering portal, a new chapter in your mystical | &&
+|odyssey unfolds.\n| &&
+
+|With every step you took, every spell you cast, and every riddle you unraveled, you have proven your worth| &&
+| to the ancient and esteemed Wizard's Guild. The time has come for the portal's ethereal embrace | &&
+|to transport you to a realm where destiny awaits, where the whispers of ancient knowledge beckon, | &&
+|and where the weight of the wizarding world rests upon your capable shoulders.\n| &&
+
+|As you step through the portal's threshold, know that you leave behind the title | &&
+|of an apprentice, for you emerge on the other side as a full-fledged wizard. The Guild's esteemed members, | &&
+|masters of enchantment and guardians of wisdom, stand ready to greet you with open arms. | &&
+|Their eyes, filled with respect and admiration, acknowledge your profound accomplishments and recognize | &&
+|the tremendous potential that resides within you.\n| &&
+
+|You now join the ranks of those who have mastered the arcane arts, entrusted with the sacred duty to | &&
+|preserve the balance between realms, protect the mystical secrets, and safeguard the realms from the encroachment of darkness. | &&
+|Your path, illuminated by the brilliance of your magic, will guide you to places yet unexplored, and grant you the power | &&
+|to shape the destiny of the wizarding world.\n| &&
+
+|Cherish this moment, for it is the culmination of your tireless dedication, relentless pursuit of knowledge, | &&
+|and unyielding belief in your own abilities. May your future endeavors be marked by triumphs, discoveries, and the boundless | &&
+|wonders of magic. The Guild celebrates your ascension, and your name shall be etched among the legends of the wizarding realm.\n| &&
+
+|Step forth, esteemed wizard, and let your name resound through the annals of history. Your journey has only just begun, | &&
+|and the infinite possibilities that lie ahead are yours to explore. Embrace your newfound status with humility, wisdom, and a | &&
+|steadfast commitment to uphold the honor and sanctity of the wizarding traditions. \n| &&
+
+|Congratulations once again, full-fledged wizard. The realm awaits your extraordinary exploits, | &&
+|and the future of magic shall forever be intertwined with your magnificent presence.|.
   ENDMETHOD.
 
 ENDCLASS.

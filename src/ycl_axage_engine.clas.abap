@@ -136,29 +136,29 @@ CLASS YCL_AXAGE_ENGINE IMPLEMENTATION.
   METHOD add_help.
     log->add( `` ).
     log->add( `Navigation Commands:` ).
-    log->add( |MAP               Show map/ floor plan/ world| ).
-    log->add( |N or NORTH        Walk to the room on the north side| ).
-    log->add( |E or EAST         Walk to the room on the east side| ).
-    log->add( |S or SOUTH        Walk to the room on the south side| ).
-    log->add( |W or WEST         Walk to the room on the west side| ).
-    log->add( |U or UP           Go to the room upstairs| ).
-    log->add( |D or DOWN         Go to the room downstairs| ).
+    log->add( |MAP               Display the map, floor plan, or world.| ).
+    log->add( |N or NORTH        Move to the room on the north side.| ).
+    log->add( |E or EAST         Move to the room on the east side.| ).
+    log->add( |S or SOUTH        Move to the room on the south side.| ).
+    log->add( |W or WEST         Move to the room on the west side.| ).
+    log->add( |U or UP           Go to the room upstairs.| ).
+    log->add( |D or DOWN         Go to the room downstairs.| ).
 
     log->add( `` ).
     log->add( `Interaction with Objects:` ).
-    log->add( |INV or INVENTORY  View everything you ae carrying| ).
-    log->add( |LOOK              Describe your environment| ).
-    log->add( |LOOK <object>     Have a closer look at the object in the room or in your inventory| ).
-    log->add( |PICKUP <object>   (or TAKE) Pickup an object in the current place| ).
-    log->add( |DROP <object>     Drop an object that you carry| ).
-    log->add( |OPEN <object>     Open something that is in the room| ).
+    log->add( |INV or INVENTORY  View everything you are carrying.| ).
+    log->add( |LOOK              Describe your environment.| ).
+    log->add( |LOOK <object>     Take a closer look at the object in the room or in your inventory.| ).
+    log->add( |PICKUP <object>   (or TAKE) Pick up an object in the current place.| ).
+    log->add( |DROP <object>     Drop an object that you are carrying.| ).
+    log->add( |OPEN <object>     Open something that is in the room.| ).
     log->add( `` ).
     log->add( `Other Commands:` ).
-    log->add( |ASK <person>            Ask a person to tell you something| ).
-    log->add( |CAST <spell>            You must use the Spell name| ).
-    log->add( |WELD <subject> <object>   Weld subject to the object if allowed| ).
-    log->add( |DUNK <subject> <object>   Dunk subject into object if allowed| ).
-    log->add( |SPLASH <subject> <object> Splash  subject into object| ).
+    log->add( |ASK <person>              Request a person to tell you something.| ).
+    log->add( |CAST <spell>              Utilize a spell by using its name.| ).
+    log->add( |WELD <subject> <object>   Weld the subject to the object if allowed.| ).
+    log->add( |DUNK <subject> <object>   Submerge the subject into the object if allowed.| ).
+    log->add( |SPLASH <subject> <object> Splash the subject into the object.| ).
     log->add( `` ).
   ENDMETHOD.
 

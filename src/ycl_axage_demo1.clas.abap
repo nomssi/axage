@@ -10,14 +10,13 @@ public section.
   methods CONSTRUCTOR .
   PROTECTED SECTION.
   PRIVATE SECTION.
-    DATA bill_developer TYPE REF TO ycl_axage_actor.
+    DATA bill_developer  TYPE REF TO ycl_axage_actor.
     DATA mark_consultant TYPE REF TO ycl_axage_actor.
-    DATA engine TYPE REF TO ycl_axage_engine.
+    DATA engine          TYPE REF TO ycl_axage_engine.
+
     METHODS interprete
-      IMPORTING
-        command       TYPE clike
-      RETURNING
-        VALUE(result) TYPE REF TO ycl_axage_log.
+      IMPORTING !command      TYPE clike
+      RETURNING VALUE(result) TYPE REF TO ycl_axage_log.
 ENDCLASS.
 
 
@@ -100,6 +99,8 @@ CLASS YCL_AXAGE_DEMO1 IMPLEMENTATION.
     out->write( interprete( 'NORTH'  )->get(  ) ).
     out->write( interprete( 'EAST'  )->get(  ) ).
     out->write( interprete( 'TAKE KNIFE' )->get(  ) ).
+    out->write( interprete( 'INV' )->get(  ) ).
+    "result->addTab( interprete( 'INV'  )->get(  ) ).
 
     IF engine->player->location->exists( 'RFC' ).
       engine->mission_completed = abap_true.
@@ -111,6 +112,7 @@ CLASS YCL_AXAGE_DEMO1 IMPLEMENTATION.
   METHOD INTERPRETE.
     result = engine->interprete( command ).
     result->add( |You are in the { engine->player->location->name }.| ).
-    engine->get_inventory( result ).
+
+    "engine->player->location->look_around( result ).
   ENDMETHOD.
 ENDCLASS.
