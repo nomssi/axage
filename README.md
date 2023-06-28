@@ -51,6 +51,18 @@ OPEN <object>     Open something that is in the room
 ASK <person>      Ask a person to talk to you
 ```
 
+The MAP command draws a static map, which the player can use for orientation.
+With the LOOK command, you can look around and discover things that you might want to examine more closely...
+
+Interaction
+
+In the game, there are "objects". So far, <objects> can carried (TAKE or PICKUP), discarded (DROP), or examined (LOOK <object>). Some objects can also be opened. When an object is opened, other objects may be inside. Those objects found are automatically taken and packed into the inventory (INV command). So, you can always see what objects you are carrying with you.
+The adventure then consists of finding all possible objects and applying them correctly.
+
+Actors
+
+Currently, actors (people, monsters, wizards, etc.) can be defined. However, they can only give a response when asked (ASK command). So, they can already give hints..
+
 ## Game custom commands
 ```
 SPLASH
