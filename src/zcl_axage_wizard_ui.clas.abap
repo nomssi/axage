@@ -442,10 +442,10 @@ CLASS zcl_axage_wizard_ui IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_focus.
-    app-client->cursor_set(  VALUE #( id = c_id_command
-                                      cursorpos = '1'
-                                      selectionstart = '1'
-                                      selectionend = '1' ) ).
+    app-client->cursor_set( id = c_id_command
+                            cursorpos = '1'
+                            selectionstart = '1'
+                            selectionend = '1' ).
   ENDMETHOD.
 
   METHOD view_popup_input.
