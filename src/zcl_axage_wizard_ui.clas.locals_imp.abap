@@ -4,13 +4,16 @@
 
 CLASS lcl_texts DEFINITION.
   PUBLIC SECTION.
-    CLASS-METHODS:
-      intro RETURNING VALUE(result) TYPE string,
-      hint IMPORTING location TYPE string OPTIONAL
-           RETURNING VALUE(result) TYPE string,
-      cheat_hint IMPORTING location TYPE string
-                 RETURNING VALUE(result) TYPE string,
-      congratulation RETURNING VALUE(result) TYPE string.
+    CLASS-METHODS intro     RETURNING VALUE(result) TYPE string.
+    CLASS-METHODS html_help RETURNING VALUE(result) TYPE string.
+
+    CLASS-METHODS hint IMPORTING location      TYPE string OPTIONAL
+                       RETURNING VALUE(result) TYPE string.
+
+    CLASS-METHODS cheat_hint IMPORTING location      TYPE string
+                             RETURNING VALUE(result) TYPE string.
+
+    CLASS-METHODS congratulation RETURNING VALUE(result) TYPE string.
 
 ENDCLASS.
 
@@ -25,6 +28,39 @@ CLASS lcl_images DEFINITION.
       living_room1 RETURNING VALUE(result) TYPE string,
       pond RETURNING VALUE(result) TYPE string,
       painting RETURNING VALUE(result) TYPE string.
+
+ENDCLASS.
+
+CLASS lcl_data DEFINITION.
+  PUBLIC SECTION.
+    CONSTANTS c_axage_name TYPE string VALUE 'AXAGE'.
+    TYPES tv_uuid TYPE c LENGTH 32.
+
+    CLASS-METHODS read IMPORTING name TYPE string
+                       RETURNING VALUE(rs_data) TYPE yaxage_data.
+    CLASS-METHODS save IMPORTING uuid TYPE tv_uuid
+                                 name TYPE string.
+  PRIVATE SECTION.
+ENDCLASS.
+
+CLASS lcl_data IMPLEMENTATION.
+
+  METHOD read.
+    SELECT SINGLE FROM yaxage_data
+      FIELDS *
+      WHERE game = @c_axage_name
+        AND name = @name
+      INTO @rs_data.
+  ENDMETHOD.
+
+  METHOD save.
+    IF uuid IS NOT INITIAL.
+      MODIFY yaxage_data FROM @( VALUE #( uuid = uuid
+                                          name = name
+                                          game = c_axage_name ) ).
+      COMMIT WORK.
+    ENDIF.
+  ENDMETHOD.
 
 ENDCLASS.
 
@@ -95,6 +131,59 @@ CLASS lcl_texts IMPLEMENTATION.
          |May Eldoria guide you.\n| &&
          |\n| &&
          |Yours in magic\n| .
+  ENDMETHOD.
+
+  METHOD html_help.
+    result =
+     `<pre>` &&
+       '              _,._       ' && '<br>' &&
+       '  .||,       /_ _\\\\     ' && '<br>' &&
+       ' \.`'',/      |''L''| |     ' && '<br>' &&
+       ' = ,. =      | -,| L     ' && '<br>' &&
+       ' / || \    ,-''\"/,''`.    ' && '<br>' &&
+       '   ||     ,''   `,,. `.  ' && '<br>' &&
+       '   ,|____,'' , ,;'' \| |   ' && '<br>' &&
+       '  (3|\    _/|/''   _| |   ' && '<br>' &&
+       '   ||/,-''   | >-'' _,\\\\ ' && '<br>' &&
+       '   ||''      ==\ ,-''  ,''  ' && '<br>' &&
+       '   ||       |  V \ ,|    ' && '<br>' &&
+       '   ||       |    |` |    ' && '<br>' &&
+       '   ||       |    |   \   ' && '<br>' &&
+       '   ||       |    \    \  ' && '<br>' &&
+       '   ||       |     |    \ ' && '<br>' &&
+       '   ||       |      \_,-'' ' && '<br>' &&
+       '   ||       |___,,--")_\ ' && '<br>' &&
+       '   ||         |_|   ccc/ ' && '<br>' &&
+       '   ||        ccc/        ' && '<br>' &&
+       '   ||                hjm ' && '<br>' &&
+       `</pre>` &&
+
+     |<h2>Help</h2><p>| &
+     |<h3>Navigation</h3><ul>| &&
+     |<li>MAP        <em>Show map/floor plan/world.</em>| &&
+     |<li>N or NORTH <em>Walk to the room on the north side.</em>| &&
+     |<li>E or EAST  <em>Walk to the room on the east side.</em>| &&
+     `<li>S or SOUTH <em>Walk to the room on the south side.</em>` &&
+     `<li>W or WEST  <em>Walk to the room on the west side.</em>` &&
+     `<li>U or UP    <em>Go to the room upstairs.</em>` &&
+     `<li>D or DOWN  <em>Go to the room downstairs.</em></ul><p>`.
+
+    result = result &&
+    |<h3>Interaction</h3>| &&
+    |<ul><li>INV or INVENTORY <em>View everything you are carrying.</em>| &&
+    `<li>LOOK <em>Describe your environment.</em>` &&
+    `<li>LOOK object     <em>Have a closer look at the object in the room or in your inventory.</em>` &&
+    `<li>PICKUP object   (or TAKE) <em>Pickup an object in the current place.</em>` &&
+    `<li>DROP object     <em>Drop an object that you carry.</em>` &&
+    `<li>OPEN object     <em>Open something that is in the room.</em></ul><p>`.
+
+    result = result &&
+    |<h3>Other</h3><ul>| &&
+    `<li>ASK person            <em>Ask a person to tell you something.</em>` &&
+    `<li>CAST spell            <em>Cast a spell you have learned before.</em>` &&
+    `<li>WELD subject object   <em>Weld subject to the object if allowed.</em>` &&
+    `<li>DUNK subject object   <em>Dunk subject into object if allowed.</em>` &&
+    `<li>SPLASH subject object <em>Splash  subject into object.</em></ul>`.
   ENDMETHOD.
 
   METHOD congratulation.

@@ -3,35 +3,50 @@ CLASS ycl_axage_action DEFINITION
   CREATE PUBLIC .
 
   PUBLIC SECTION.
+    CONSTANTS c_similarity_level TYPE i VALUE 70.  " 70% similarity
     TYPES tt_thing TYPE STANDARD TABLE OF REF TO ycl_axage_thing WITH EMPTY KEY.
 
     METHODS execute  ABSTRACT
       RETURNING VALUE(processed) TYPE abap_bool.
 
+    CLASS-METHODS best_match
+      IMPORTING token        TYPE string
+                valid_tokens TYPE string_table
+                !percentage  TYPE i DEFAULT c_similarity_level
+      RETURNING VALUE(variant)   TYPE string.
+
     CLASS-METHODS propose_command
       IMPORTING token            TYPE string
                 allowed_commands TYPE ycl_axage=>tt_command
-                !percentage      TYPE i DEFAULT 70  " 70% similarity
       RETURNING VALUE(variant)   TYPE string.
 
-    CLASS-METHODS process IMPORTING action           TYPE ycl_axage=>tv_action
+    CLASS-METHODS propose_parameter
+      IMPORTING token          TYPE string
+                it_index       TYPE ycl_axage=>tt_index
+                repository     TYPE REF TO ycl_axage_repository
+      RETURNING VALUE(variant) TYPE string.
+
+    CLASS-METHODS process IMPORTING !action          TYPE ycl_axage=>tv_action
                                     allowed_commands TYPE ycl_axage=>tt_command
                                     params           TYPE string_table
                                     engine           TYPE REF TO ycl_axage_engine
-                                    log              TYPE REF TO ycl_axage_log
+                                    !log             TYPE REF TO ycl_axage_log
                           RETURNING VALUE(executed)  TYPE abap_bool.
 
-    METHODS constructor IMPORTING !objects TYPE string_table
-                                  engine TYPE REF TO ycl_axage_engine
-                                  !log TYPE REF TO ycl_axage_log
+    METHODS constructor IMPORTING !objects  TYPE string_table
+                                  engine    TYPE REF TO ycl_axage_engine
+                                  !log      TYPE REF TO ycl_axage_log
                                   operation TYPE string.
 
     METHODS info
       IMPORTING !description TYPE string.
+
     METHODS warning
       IMPORTING !description TYPE string.
+
     METHODS success
       IMPORTING !description TYPE string.
+
     METHODS error
       IMPORTING !description TYPE string.
 
@@ -123,33 +138,55 @@ CLASS YCL_AXAGE_ACTION IMPLEMENTATION.
     ENDTRY.
   ENDMETHOD.
 
-  METHOD propose_command.
+  METHOD best_match.
     TYPES: BEGIN OF distance,
              text TYPE string,
              dist TYPE i,
            END OF distance.
-
     DATA distances TYPE SORTED TABLE OF distance WITH NON-UNIQUE KEY dist.
 
     variant = space.
     DATA(len_token) = strlen( token ).
     " search Minimum
-    LOOP AT allowed_commands ASSIGNING FIELD-SYMBOL(<command>).
-      DATA(len_action) = strlen( <command>-action ).
+    LOOP AT valid_tokens ASSIGNING FIELD-SYMBOL(<token>).
+      DATA(len_action) = strlen( <token> ).
       DATA(max) = COND i( WHEN len_action > len_token
                           THEN len_action
                           ELSE len_token ).
       max = ( 100 - percentage ) * max / 100 + 1.
 
-      DATA(dist) = distance( val1 = <command>-action
+      DATA(dist) = distance( val1 = <token>
                              val2 = token
                              max = max ).
       IF dist < max.
         distances = VALUE #( BASE distances
-                            ( text = <command>-action dist = dist ) ).
+                            ( text = <token> dist = dist ) ).
       ENDIF.
     ENDLOOP.
     variant = VALUE #( distances[ 1 ]-text OPTIONAL ).
+  ENDMETHOD.
+
+  METHOD propose_command.
+
+    DATA(lt_allowed) = VALUE string_table( FOR <command> IN allowed_commands ( <command>-action ) ).
+    variant = best_match( token = token
+                          valid_tokens = lt_allowed
+                          percentage = c_similarity_level ).
+  ENDMETHOD.
+
+  METHOD propose_parameter.
+    DATA lt_params TYPE string_table.
+
+    LOOP AT it_index INTO DATA(from_idx).
+      DATA(lo_from) = repository->by_index( from_idx ).
+      IF lo_from IS BOUND.
+        APPEND lo_from->name TO lt_params.
+      ENDIF.
+    ENDLOOP.
+
+    variant = best_match( token = token
+                          valid_tokens = lt_params
+                          percentage = c_similarity_level ).
   ENDMETHOD.
 
   METHOD validate.
@@ -176,6 +213,13 @@ CLASS YCL_AXAGE_ACTION IMPLEMENTATION.
           text = |{ operation } is not applicable to { apply_to_object } right now...|.
         ELSE.
           text = |There is no { apply_to_object } you can { operation }|.
+        ENDIF.
+
+        DATA(variant) = propose_parameter( repository = engine
+                                           it_index = it_from
+                                           token = apply_to_object ).
+        IF variant IS NOT INITIAL.
+          text = text && |. Did you possibly mean { variant }?|.
         ENDIF.
 
       ELSE.

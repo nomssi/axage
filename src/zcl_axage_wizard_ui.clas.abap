@@ -62,64 +62,11 @@ CLASS zcl_axage_wizard_ui DEFINITION
     METHODS init_game.
     METHODS floorplan        RETURNING VALUE(result) TYPE string_table.
     METHODS execute          IMPORTING !command      TYPE string.
-    METHODS create_help_html RETURNING VALUE(result) TYPE string.
     METHODS set_focus.
 ENDCLASS.
 
 
 CLASS zcl_axage_wizard_ui IMPLEMENTATION.
-  METHOD create_help_html.
-    result =
-     `<pre>` &&
-       '              _,._       ' && '<br>' &&
-       '  .||,       /_ _\\\\     ' && '<br>' &&
-       ' \.`'',/      |''L''| |     ' && '<br>' &&
-       ' = ,. =      | -,| L     ' && '<br>' &&
-       ' / || \    ,-''\"/,''`.    ' && '<br>' &&
-       '   ||     ,''   `,,. `.  ' && '<br>' &&
-       '   ,|____,'' , ,;'' \| |   ' && '<br>' &&
-       '  (3|\    _/|/''   _| |   ' && '<br>' &&
-       '   ||/,-''   | >-'' _,\\\\ ' && '<br>' &&
-       '   ||''      ==\ ,-''  ,''  ' && '<br>' &&
-       '   ||       |  V \ ,|    ' && '<br>' &&
-       '   ||       |    |` |    ' && '<br>' &&
-       '   ||       |    |   \   ' && '<br>' &&
-       '   ||       |    \    \  ' && '<br>' &&
-       '   ||       |     |    \ ' && '<br>' &&
-       '   ||       |      \_,-'' ' && '<br>' &&
-       '   ||       |___,,--")_\ ' && '<br>' &&
-       '   ||         |_|   ccc/ ' && '<br>' &&
-       '   ||        ccc/        ' && '<br>' &&
-       '   ||                hjm ' && '<br>' &&
-       `</pre>` &&
-
-     |<h2>Help</h2><p>| &
-     |<h3>Navigation</h3><ul>| &&
-     |<li>MAP        <em>Show map/floor plan/world.</em>| &&
-     |<li>N or NORTH <em>Walk to the room on the north side.</em>| &&
-     |<li>E or EAST  <em>Walk to the room on the east side.</em>| &&
-     `<li>S or SOUTH <em>Walk to the room on the south side.</em>` &&
-     `<li>W or WEST  <em>Walk to the room on the west side.</em>` &&
-     `<li>U or UP    <em>Go to the room upstairs.</em>` &&
-     `<li>D or DOWN  <em>Go to the room downstairs.</em></ul><p>`.
-
-    result = result &&
-    |<h3>Interaction</h3>| &&
-    |<ul><li>INV or INVENTORY <em>View everything you are carrying.</em>| &&
-    `<li>LOOK <em>Describe your environment.</em>` &&
-    `<li>LOOK object     <em>Have a closer look at the object in the room or in your inventory.</em>` &&
-    `<li>PICKUP object   (or TAKE) <em>Pickup an object in the current place.</em>` &&
-    `<li>DROP object     <em>Drop an object that you carry.</em>` &&
-    `<li>OPEN object     <em>Open something that is in the room.</em></ul><p>`.
-
-    result = result &&
-    |<h3>Other</h3><ul>| &&
-    `<li>ASK person            <em>Ask a person to tell you something.</em>` &&
-    `<li>CAST spell            <em>Cast a spell you have learned before.</em>` &&
-    `<li>WELD subject object   <em>Weld subject to the object if allowed.</em>` &&
-    `<li>DUNK subject object   <em>Dunk subject into object if allowed.</em>` &&
-    `<li>SPLASH subject object <em>Splash  subject into object.</em></ul>`.
-  ENDMETHOD.
 
   METHOD execute.
     DATA(log) = engine->interprete( command = command
@@ -474,7 +421,7 @@ CLASS zcl_axage_wizard_ui IMPLEMENTATION.
         ( descr = 'Dunk <subject> <object>'  value = 'DUNK' )
         ( descr = 'Splash <subject> <object>'  value = 'SPLASH' ) ).
 
-    formatted_text = create_help_html( ).
+    formatted_text = lcl_texts=>html_help( ).
 
     engine->combinations = VALUE #( BASE engine->combinations
                                          ( operation = ycl_axage=>c_action_weld
@@ -520,12 +467,12 @@ CLASS zcl_axage_wizard_ui IMPLEMENTATION.
                text  = 'Save'
                press = client->_event( 'BUTTON_GAME_SAVE' )
                icon  = 'sap-icon://save'
-               enabled = abap_false
+               enabled = abap_true
            )->button(
                text  = 'Load'
                press = client->_event( 'BUTTON_GAME_LOAD' )
                icon  = 'sap-icon://load'
-               enabled = abap_false
+               enabled = abap_true
            )->button(
                text  = 'Cancel'
                press = client->_event( 'BUTTON_PLAYER_CANCEL' )
@@ -579,8 +526,29 @@ CLASS zcl_axage_wizard_ui IMPLEMENTATION.
         client->message_toast_display( 'Player Setup - Cancel pressed' ).
 
       WHEN 'BUTTON_GAME_SAVE'.
+        SELECT * FROM z2ui5_t_draft
+          UP TO 1 ROWS
+          INTO @DATA(ls_draft)
+          ORDER BY timestampl DESCENDING.
+        ENDSELECT.
+
+        lcl_data=>save( name = player_name
+                        uuid = ls_draft-uuid ).
 
       WHEN 'BUTTON_GAME_LOAD'.
+          DATA(ls_data) = lcl_data=>read( name = player_name ).
+
+          IF ls_data IS NOT INITIAL.
+            SELECT SINGLE FROM z2ui5_t_draft
+             FIELDS *
+            WHERE uuid = @ls_data-uuid
+            INTO @ls_draft.
+
+            IF sy-subrc = 0.
+              client->nav_app_leave( client->get_app( ls_draft-uuid ) ).
+              RETURN.
+            ENDIF.
+          ENDIF.
 
       WHEN 'BACK'.
         client->nav_app_leave( client->get_app( client->get( )-id_prev_app_stack  ) ).
