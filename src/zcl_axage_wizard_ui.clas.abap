@@ -457,6 +457,7 @@ CLASS zcl_axage_wizard_ui IMPLEMENTATION.
        icon = 'sap-icon://account'
        )->content(
            )->simple_form(
+               )->formatted_text( lcl_texts=>profile( )
                )->label( 'Guild Aspirant''s Name'
                )->input( value = client->_bind_edit( player_name )
                          submit = client->_event( 'BUTTON_PLAYER_CONFIRM' )

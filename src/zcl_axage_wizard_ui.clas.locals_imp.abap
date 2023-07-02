@@ -5,6 +5,7 @@
 CLASS lcl_texts DEFINITION.
   PUBLIC SECTION.
     CLASS-METHODS intro     RETURNING VALUE(result) TYPE string.
+    CLASS-METHODS profile   RETURNING VALUE(result) TYPE string.
     CLASS-METHODS html_help RETURNING VALUE(result) TYPE string.
 
     CLASS-METHODS hint IMPORTING location      TYPE string OPTIONAL
@@ -131,6 +132,20 @@ CLASS lcl_texts IMPLEMENTATION.
          |May Eldoria guide you.\n| &&
          |\n| &&
          |Yours in magic\n| .
+  ENDMETHOD.
+
+  METHOD profile.
+    result = |<strong>A hearty welcome to you, brave apprentice!</strong><p>| &&
+         | As you brace yourself at the threshold of your | &&
+         | adventure, bear in mind that your innate curiosity and sharp intellect are your true guides through | &&
+         |the labyrinth of uncertainties.| &&
+         |<p>| &&
+         |Your mission, should you choose to accept it, involves securing three distinct magical items that lay| &&
+         |scattered across the realm - the Orb of Sunlight, the Potion of Infinite Stars, and the Staff of Eternal Moon.<p>| &&
+         |This journey will not be without challenges; indeed, it will rigorously examine the very essence | &&
+         |of your nascent wizarding skills.| &&
+         |<p>| &&
+         |<em>The realm is ready for you, First enter your name!</em><p>|.
   ENDMETHOD.
 
   METHOD html_help.
