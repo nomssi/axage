@@ -41,6 +41,14 @@ CLASS zcl_axage_wizard_ui DEFINITION
 
     DATA messages     TYPE ycl_axage_log=>tt_msg.
 
+    TYPES:
+      BEGIN OF ty_s_game,
+        selkz TYPE abap_bool,
+        game  TYPE string,
+      END OF ty_S_game.
+
+    DATA mt_data TYPE STANDARD TABLE OF ty_S_game WITH EMPTY KEY.
+
     METHODS view_popup_input
       IMPORTING !client TYPE REF TO z2ui5_if_client.
 
@@ -57,6 +65,7 @@ CLASS zcl_axage_wizard_ui DEFINITION
       END OF app.
 
     DATA mv_popup_name TYPE string.
+    DATA mv_game_name TYPE string VALUE 'axage'.
     DATA engine        TYPE REF TO ycl_axage_engine.
 
     METHODS init_game.
@@ -449,8 +458,8 @@ CLASS zcl_axage_wizard_ui IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD view_popup_input.
-    DATA(popup) = z2ui5_cl_xml_view=>factory_popup( client ).
-    popup->dialog(
+    DATA(popup) = z2ui5_cl_xml_view=>factory_popup( client
+       )->dialog(
        " contentheight = '200px'
        contentwidth  = '500px'
        title = 'Player Profile'
@@ -461,12 +470,50 @@ CLASS zcl_axage_wizard_ui IMPLEMENTATION.
                )->label( 'Guild Aspirant''s Name'
                )->input( value = client->_bind_edit( player_name )
                          submit = client->_event( 'BUTTON_PLAYER_CONFIRM' )
-       )->get_parent( )->get_parent(
-       )->footer( )->overflow_toolbar(
+       )->get_parent( )->get_parent( ).
+
+
+    DATA(grid) = popup->grid( 'L6 M12 S12'
+        )->content( 'layout' ).
+
+    DATA(tab) = grid->table(
+            items = client->_bind_edit( mt_data )
+            mode  = 'MultiSelect'
+        )->header_toolbar(
+            )->overflow_toolbar(
+                )->title( 'Active Games:'
+                )->toolbar_spacer(
+                )->button(
+                    icon  = 'sap-icon://delete'
+                    text  = 'Delete'
+                    press = client->_event( 'BUTTON_GAME_DELETE' )
+                )->button(
+                    icon  = 'sap-icon://add'
+                    text  = 'New'
+                    press = client->_event( 'BUTTON_GAME_ADD' )
+        )->get_parent( )->get_parent( ).
+
+    tab->columns(
+        )->column(
+            )->text( 'Name' )->get_parent(
+          )->column(
+            )->text( 'UUID' )->get_parent(
+             )->column(
+            )->text( 'Action' )->get_parent(
+     ).
+
+    tab->items( )->column_list_item( selected = '{SELKZ}'
+      )->cells(
+          )->text( text = '{GAME}'
+          )->text( text = '{UUID}'
+          )->button( text = 'Join' press = client->_event( val = `JOIN` t_arg = VALUE #( ( `${GAME}` ) )  )
+           ).
+
+     popup->footer( )->overflow_toolbar(
            )->toolbar_spacer(
            )->button(
                text  = 'Save'
-               press = client->_event( 'BUTTON_GAME_SAVE' )
+               press = client->_event( 'BUTTON_GAME_ADD' )
                icon  = 'sap-icon://save'
                enabled = abap_true
            )->button(
@@ -526,24 +573,29 @@ CLASS zcl_axage_wizard_ui IMPLEMENTATION.
       WHEN 'BUTTON_PLAYER_CANCEL'.
         client->message_toast_display( 'Player Setup - Cancel pressed' ).
 
-      WHEN 'BUTTON_GAME_SAVE'.
-        SELECT * FROM z2ui5_t_draft
-          UP TO 1 ROWS
-          INTO @DATA(ls_draft)
-          ORDER BY timestampl DESCENDING.
-        ENDSELECT.
-
+      WHEN 'BUTTON_GAME_ADD'.
         lcl_data=>save( name = player_name
-                        uuid = ls_draft-uuid ).
+                        game = mv_game_name ).
+
+      WHEN 'BUTTON_GAME_DELETE'.
+        DATA(lt_entry) = mt_data.
+        DELETE lt_entry WHERE selkz = abap_false.
+
+        LOOP AT lt_entry INTO DATA(ls_entry).
+          lcl_data=>delete( name = player_name
+                            game = mv_game_name ).
+        ENDLOOP.
+        COMMIT WORK AND WAIT.
+
 
       WHEN 'BUTTON_GAME_LOAD'.
-          DATA(ls_data) = lcl_data=>read( name = player_name ).
-
+          DATA(ls_data) = lcl_data=>read( name = player_name
+                                          game = mv_game_name ).
           IF ls_data IS NOT INITIAL.
             SELECT SINGLE FROM z2ui5_t_draft
              FIELDS *
             WHERE uuid = @ls_data-uuid
-            INTO @ls_draft.
+            INTO @DATA(ls_draft).
 
             IF sy-subrc = 0.
               client->nav_app_leave( client->get_app( ls_draft-uuid ) ).
@@ -552,7 +604,7 @@ CLASS zcl_axage_wizard_ui IMPLEMENTATION.
           ENDIF.
 
       WHEN 'BACK'.
-        client->nav_app_leave( client->get_app( client->get( )-id_prev_app_stack  ) ).
+        client->nav_app_leave( client->get_app( client->get( )-s_draft-id_prev_app_stack  ) ).
     ENDCASE.
 
     DATA(lo_main) = z2ui5_cl_xml_view=>factory( client )->shell( ).
@@ -725,7 +777,48 @@ CLASS zcl_axage_wizard_ui IMPLEMENTATION.
                      )->formatted_text( Cheat_Sheet
              )->get_parent( ).
 
+
+      grid1->vbox( )->grid(
+            )->button( enabled = abap_false
+            )->button( icon = 'sap-icon://navigation-up-arrow'
+                       text = 'Up'
+                       press = client->_event( 'UP' )
+           )->get_parent( )->grid(
+            )->button( enabled = abap_false
+
+           )->get_parent( )->grid(
+            )->button( enabled = abap_false
+            )->button( icon = `sap-icon://arrow-top`
+                       text = 'North'
+                       press = client->_event( 'NORTH' )
+           )->get_parent( )->grid(
+            )->button(  icon  = `sap-icon://arrow-left`
+                        text = 'East'
+                        press = client->_event( 'WEST' )
+            )->button( icon = 'sap-icon://map-2'  " `sap-icon://map`
+                       text = 'Map'
+                       press = client->_event( 'WEST' )
+            )->button(  icon  = `sap-icon://arrow-right`
+                        text = 'West'
+                        press = client->_event( 'MAP' )
+             )->get_parent( )->grid(
+            )->button( enabled = abap_false
+            )->button(  icon  = `sap-icon://arrow-bottom`
+                        text = 'South'
+                        press = client->_event( 'SOUTH' )
+           )->get_parent( )->grid(
+            )->button( enabled = abap_false
+
+           )->get_parent( )->grid(
+            )->button( enabled = abap_false
+            )->button(  icon  = 'sap-icon://navigation-down-arrow'
+                        text = 'Down'
+                        press = client->_event( 'DOWN' )
+
+            ).
+
     ENDIF.
+
 
     " page->grid( 'L8 M8 S8' )->content( 'layout' ).
     DATA(grid2) = page->grid( 'L6 M8 S8' )->content( 'layout' ).

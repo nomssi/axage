@@ -38,9 +38,14 @@ CLASS lcl_data DEFINITION.
     TYPES tv_uuid TYPE c LENGTH 32.
 
     CLASS-METHODS read IMPORTING name TYPE string
+                                 game TYPE string
                        RETURNING VALUE(rs_data) TYPE yaxage_data.
-    CLASS-METHODS save IMPORTING uuid TYPE tv_uuid
-                                 name TYPE string.
+    CLASS-METHODS save IMPORTING uuid TYPE tv_uuid OPTIONAL
+                                 name TYPE string
+                                 game TYPE string.
+    CLASS-METHODS delete IMPORTING uuid TYPE tv_uuid OPTIONAL
+                                   name TYPE string
+                                   game TYPE string.
   PRIVATE SECTION.
 ENDCLASS.
 
@@ -49,18 +54,31 @@ CLASS lcl_data IMPLEMENTATION.
   METHOD read.
     SELECT SINGLE FROM yaxage_data
       FIELDS *
-      WHERE game = @c_axage_name
+      WHERE game = @game
         AND name = @name
       INTO @rs_data.
   ENDMETHOD.
 
   METHOD save.
+    SELECT * FROM z2ui5_t_draft
+      UP TO 1 ROWS
+      INTO @DATA(ls_draft)
+      ORDER BY timestampl DESCENDING.
+    ENDSELECT.
+    "ls_draft-uuid = cast z2ui5_if_app( me )->id.
+
     IF uuid IS NOT INITIAL.
-      MODIFY yaxage_data FROM @( VALUE #( uuid = uuid
+      MODIFY yaxage_data FROM @( VALUE #( uuid = ls_draft-uuid
                                           name = name
-                                          game = c_axage_name ) ).
+                                          game = game ) ).
       COMMIT WORK.
     ENDIF.
+  ENDMETHOD.
+
+  METHOD delete.
+    DELETE FROM yaxage_data WHERE name = name
+                              AND game = game.
+    COMMIT WORK.
   ENDMETHOD.
 
 ENDCLASS.
