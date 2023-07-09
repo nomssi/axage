@@ -60,10 +60,10 @@ CLASS lcl_data IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD save.
-    SELECT * FROM z2ui5_t_draft
-      UP TO 1 ROWS
-      INTO @DATA(ls_draft)
-      ORDER BY timestampl DESCENDING.
+    SELECT *
+      FROM z2ui5_t_draft
+      ORDER BY timestampl DESCENDING
+      INTO @DATA(ls_draft) UP TO 1 ROWS.
     ENDSELECT.
     "ls_draft-uuid = cast z2ui5_if_app( me )->id.
 
@@ -76,8 +76,8 @@ CLASS lcl_data IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD delete.
-    DELETE FROM yaxage_data WHERE name = name
-                              AND game = game.
+    DELETE FROM yaxage_data WHERE name = @name
+                              AND game = @game.
     COMMIT WORK.
   ENDMETHOD.
 
