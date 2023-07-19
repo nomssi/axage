@@ -5,10 +5,9 @@
 
 # Game engine
 a wizard's adventure game based on a fork of the AXAGE game engine (ABAP teXt Adventure Game Engine) and abap2UI5. 
+The game is set in a fantasy world, where the player takes on the role of a wizard's apprentice. The player explores the wizard's house, interacts with various objects and explores. The Quest is work in progress...
 
 The goal of the game is to obtain three magical items: the Orb of Sunlight, the Potion of Infinite Stars, and the Staff of Eternal Moon. These items need to be combined to open a portal to the Wizard’s Guild where the apprentice will finally be recognized as a full wizard.
-
-The Quest is work in progress...
 
 # maps
 define rooms with exits to north, east, south and west, up and down
