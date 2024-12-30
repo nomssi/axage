@@ -61,14 +61,14 @@ CLASS lcl_data IMPLEMENTATION.
 
   METHOD save.
     SELECT *
-      FROM z2ui5_t_draft
+      FROM z2ui5_t_01
       ORDER BY timestampl DESCENDING
       INTO @DATA(ls_draft) UP TO 1 ROWS.
     ENDSELECT.
     "ls_draft-uuid = cast z2ui5_if_app( me )->id.
 
     IF uuid IS NOT INITIAL.
-      MODIFY yaxage_data FROM @( VALUE #( uuid = ls_draft-uuid
+      MODIFY yaxage_data FROM @( VALUE #( uuid = ls_draft-id
                                           name = name
                                           game = game ) ).
       COMMIT WORK.
