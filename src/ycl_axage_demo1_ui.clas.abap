@@ -12,6 +12,7 @@ CLASS ycl_axage_demo1_ui DEFINITION
 
     DATA messages TYPE ycl_axage_log=>tt_msg.
 
+protected section.
   PRIVATE SECTION.
     CONSTANTS c_id_command TYPE string VALUE 'id_command'.
 
@@ -21,7 +22,7 @@ CLASS ycl_axage_demo1_ui DEFINITION
         anzahl_items      TYPE string,
         check_initialized TYPE abap_bool,
         main_view         TYPE string,
-        s_get             TYPE z2ui5_if_client=>ty_s_get,
+        s_get             TYPE z2ui5_if_types=>ty_s_get,
       END OF app.
 
     DATA bill_developer  TYPE REF TO ycl_axage_actor.
@@ -33,7 +34,14 @@ CLASS ycl_axage_demo1_ui DEFINITION
 ENDCLASS.
 
 
-CLASS ycl_axage_demo1_ui IMPLEMENTATION.
+
+CLASS YCL_AXAGE_DEMO1_UI IMPLEMENTATION.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method YCL_AXAGE_DEMO1_UI->INIT_GAME
+* +-------------------------------------------------------------------------------------------------+
+* +--------------------------------------------------------------------------------------</SIGNATURE>
   METHOD init_game.
     engine = NEW #( ).
     DATA(entrance)   = engine->new_room( name = 'Entrance' descr = 'You are in the entrance area. Welcome.' ).
@@ -98,6 +106,12 @@ CLASS ycl_axage_demo1_ui IMPLEMENTATION.
       ( |You can ask me anything about SAP processes.| ) ) ).
   ENDMETHOD.
 
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method YCL_AXAGE_DEMO1_UI->EXECUTE
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] COMMAND                        TYPE        STRING
+* +--------------------------------------------------------------------------------------</SIGNATURE>
   METHOD execute.
     DATA(log) = engine->interprete( command = command
                                     auto_look = abap_false ).
@@ -118,6 +132,12 @@ CLASS ycl_axage_demo1_ui IMPLEMENTATION.
     results = log->get( ).
   ENDMETHOD.
 
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method YCL_AXAGE_DEMO1_UI->Z2UI5_IF_APP~MAIN
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] CLIENT                         TYPE REF TO Z2UI5_IF_CLIENT
+* +--------------------------------------------------------------------------------------</SIGNATURE>
   METHOD z2ui5_if_app~main.
     app-client = client.
     app-s_get  = client->get( ).
@@ -151,10 +171,10 @@ CLASS ycl_axage_demo1_ui IMPLEMENTATION.
         results = |{ result->get( ) } \n | && results.
 
       WHEN 'BACK'.
-        client->nav_app_leave( client->get_app( client->get( )-id_prev_app_stack  ) ).
+        client->nav_app_leave( client->get_app( client->get( )-s_draft-id_prev_app_stack ) ).
     ENDCASE.
 
-    DATA(view) = z2ui5_cl_xml_view=>factory( client )->shell( ).
+    DATA(view) = z2ui5_cl_xml_view=>factory( )->shell( ).
 
     DATA(page) = view->page(
       id             = 'id_page'
@@ -220,10 +240,11 @@ CLASS ycl_axage_demo1_ui IMPLEMENTATION.
              press = client->_event( 'HELP' )
              icon  = 'sap-icon://sys-help'
 
-        )->link(
-             text = 'Source_Code'
-             href = view->hlp_get_source_code_url( )
-             target = '_blank'
+" Ctrl+F12?
+*        )->link(
+*             text = 'Source_Code'
+*             href = view->hlp_get_source_code_url( )
+*             target = '_blank'
 
        )->get_parent( ).
 
