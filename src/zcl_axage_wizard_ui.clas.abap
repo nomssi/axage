@@ -18,6 +18,11 @@ CLASS zcl_axage_wizard_ui DEFINITION
     DATA cheat_sheet      TYPE string.
     DATA background_image TYPE string.
 
+    DATA focus_id TYPE string.
+    DATA selstart TYPE string.
+    DATA selend TYPE string.
+    DATA update_focus TYPE abap_bool.
+
     TYPES:
       BEGIN OF ts_suggestion_items,
         value TYPE string,
@@ -52,6 +57,7 @@ CLASS zcl_axage_wizard_ui DEFINITION
     METHODS view_popup_input
       IMPORTING !client TYPE REF TO z2ui5_if_client.
 
+protected section.
   PRIVATE SECTION.
     CONSTANTS c_id_command TYPE string VALUE 'id_command'.
 
@@ -61,7 +67,7 @@ CLASS zcl_axage_wizard_ui DEFINITION
         check_initialized TYPE abap_bool,
         main_view         TYPE string,
         popup_view        TYPE string,
-        s_get             TYPE z2ui5_if_client=>ty_s_get,
+        s_get             TYPE z2ui5_if_types=>ty_s_get,
       END OF app.
 
     DATA mv_popup_name TYPE string.
@@ -72,11 +78,19 @@ CLASS zcl_axage_wizard_ui DEFINITION
     METHODS floorplan        RETURNING VALUE(result) TYPE string_table.
     METHODS execute          IMPORTING !command      TYPE string.
     METHODS set_focus.
+    METHODS init.
 ENDCLASS.
 
 
-CLASS zcl_axage_wizard_ui IMPLEMENTATION.
 
+CLASS ZCL_AXAGE_WIZARD_UI IMPLEMENTATION.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method ZCL_AXAGE_WIZARD_UI->EXECUTE
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] COMMAND                        TYPE        STRING
+* +--------------------------------------------------------------------------------------</SIGNATURE>
   METHOD execute.
     DATA(log) = engine->interprete( command = command
                                     auto_look = auto_look ).
@@ -104,6 +118,12 @@ CLASS zcl_axage_wizard_ui IMPLEMENTATION.
     results = log->get( ).
   ENDMETHOD.
 
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method ZCL_AXAGE_WIZARD_UI->FLOORPLAN
+* +-------------------------------------------------------------------------------------------------+
+* | [<-()] RESULT                         TYPE        STRING_TABLE
+* +--------------------------------------------------------------------------------------</SIGNATURE>
   METHOD floorplan.
     result = VALUE string_table(
       ( `+--------------------+` )
@@ -132,6 +152,11 @@ CLASS zcl_axage_wizard_ui IMPLEMENTATION.
       ( `                       +----------------+` ) ).
   ENDMETHOD.
 
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method ZCL_AXAGE_WIZARD_UI->INIT_GAME
+* +-------------------------------------------------------------------------------------------------+
+* +--------------------------------------------------------------------------------------</SIGNATURE>
   METHOD init_game.
     engine = NEW #( ).
     " Nodes
@@ -450,15 +475,28 @@ CLASS zcl_axage_wizard_ui IMPLEMENTATION.
                                            category  = ycl_axage=>c_combine_category_on ) ).
   ENDMETHOD.
 
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method ZCL_AXAGE_WIZARD_UI->SET_FOCUS
+* +-------------------------------------------------------------------------------------------------+
+* +--------------------------------------------------------------------------------------</SIGNATURE>
   METHOD set_focus.
-    app-client->cursor_set( id = c_id_command
-                            cursorpos = '1'
-                            selectionstart = '1'
-                            selectionend = '1' ).
+    update_focus = abap_true.
+    focus_id = c_id_command.
+    "cursorpos = '1'
+    selstart = '1'.
+    selend = '1'.
+    app-client->view_model_update( ).
   ENDMETHOD.
 
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_AXAGE_WIZARD_UI->VIEW_POPUP_INPUT
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] CLIENT                         TYPE REF TO Z2UI5_IF_CLIENT
+* +--------------------------------------------------------------------------------------</SIGNATURE>
   METHOD view_popup_input.
-    DATA(popup) = z2ui5_cl_xml_view=>factory_popup( client
+    DATA(popup) = z2ui5_cl_xml_view=>factory_popup(
        )->dialog(
        " contentheight = '200px'
        contentwidth  = '500px'
@@ -534,9 +572,16 @@ CLASS zcl_axage_wizard_ui IMPLEMENTATION.
     client->popup_display( popup->stringify( ) ).
   ENDMETHOD.
 
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_AXAGE_WIZARD_UI->Z2UI5_IF_APP~MAIN
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] CLIENT                         TYPE REF TO Z2UI5_IF_CLIENT
+* +--------------------------------------------------------------------------------------</SIGNATURE>
   METHOD z2ui5_if_app~main.
     app-client = client.
     app-s_get  = client->get( ).
+    init( ).
 
     mv_popup_name = ''.
 
@@ -569,8 +614,10 @@ CLASS zcl_axage_wizard_ui IMPLEMENTATION.
 
       WHEN 'BUTTON_PLAYER_CONFIRM'.
         engine->player->name = player_name.
+        client->popup_destroy( ).
 
       WHEN 'BUTTON_PLAYER_CANCEL'.
+        client->popup_destroy( ).
         client->message_toast_display( 'Player Setup - Cancel pressed' ).
 
       WHEN 'BUTTON_GAME_ADD'.
@@ -592,13 +639,13 @@ CLASS zcl_axage_wizard_ui IMPLEMENTATION.
           DATA(ls_data) = lcl_data=>read( name = player_name
                                           game = mv_game_name ).
           IF ls_data IS NOT INITIAL.
-            SELECT SINGLE FROM z2ui5_t_draft
+            SELECT SINGLE FROM z2ui5_t_01
              FIELDS *
-            WHERE uuid = @ls_data-uuid
+            WHERE id = @ls_data-uuid
             INTO @DATA(ls_draft).
 
             IF sy-subrc = 0.
-              client->nav_app_leave( client->get_app( ls_draft-uuid ) ).
+              client->nav_app_leave( client->get_app( ls_draft-id ) ).
               RETURN.
             ENDIF.
           ENDIF.
@@ -607,7 +654,7 @@ CLASS zcl_axage_wizard_ui IMPLEMENTATION.
         client->nav_app_leave( client->get_app( client->get( )-s_draft-id_prev_app_stack  ) ).
     ENDCASE.
 
-    DATA(lo_main) = z2ui5_cl_xml_view=>factory( client )->shell( ).
+    DATA(lo_main) = z2ui5_cl_xml_view=>factory( )->shell( ).
     DATA(page) = lo_main->page(
       id =           'id_page'
       title          = 'The Wizard''s Adventure Game'
@@ -886,5 +933,15 @@ CLASS zcl_axage_wizard_ui IMPLEMENTATION.
 
     set_focus( ).
     client->view_display( lo_main->stringify( ) ).
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method ZCL_AXAGE_WIZARD_UI->INIT
+* +-------------------------------------------------------------------------------------------------+
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+ METHOD init.
+    selstart = `1`.
+    selend = `1`.
   ENDMETHOD.
 ENDCLASS.
